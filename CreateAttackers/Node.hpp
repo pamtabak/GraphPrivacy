@@ -17,6 +17,7 @@ public:
     // if node is an attacker, it`s external degree is the sum of all it`s connections to nodes that are not attackers
     // else, it`s 0
     int externalDegree;
+    int maximumExternalDegree;
 
 //    // Node`s degree
 //    int degree;
@@ -32,6 +33,16 @@ public:
     int getExternalDegree ()
     {
        return this->externalDegree;
+    }
+
+    void setMaximumExternalDegree (int maximumExternalDegree)
+    {
+        this->maximumExternalDegree = maximumExternalDegree;
+    }
+
+    int getMaximumExternalDegree ()
+    {
+        return this->maximumExternalDegree;
     }
 
     void addNeighbor (string neighbor)

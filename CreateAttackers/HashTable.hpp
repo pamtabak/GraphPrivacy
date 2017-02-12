@@ -7,6 +7,7 @@
 
 #include <unordered_map>
 #include <fstream>
+#include <unordered_set>
 
 using namespace std;
 
@@ -26,18 +27,17 @@ public:
         return this->hashMap[key];
     }
 
-    void writeToFile (string fileName)
+    unordered_set<string> getKeys ()
     {
-        ofstream file;
-        file.open(fileName, fstream::app);
+        unordered_set<string> keys;
         for (unsigned i = 0; i < this->hashMap.bucket_count(); ++i)
         {
             for (auto local_it = this->hashMap.begin(i); local_it!= this->hashMap.end(i); ++local_it)
             {
-                file << local_it->first << ":" << local_it->second << "\n";
+                keys.insert(local_it->first);
             }
         }
-        file.close();
+        return keys;
     }
 };
 

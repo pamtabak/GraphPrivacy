@@ -84,7 +84,7 @@ int main (int argc, char * argv[])
     // Output: new graph G (with attackers on it)
 
     // Input: Path to graph G and way it`s structured, Path to list of target nodes
-    if(argc != 4)
+    if(argc != 5)
     {
         cout << "Wrong number of parameters." << endl;
         return EXIT_FAILURE;
@@ -92,7 +92,8 @@ int main (int argc, char * argv[])
 
     string graphFilePath(argv[1]);
     string targetedNodesFilePath(argv[2]);
-    string graphStructure(argv[3]);
+    string outputFilePath(argv[3]);
+    string graphStructure(argv[4]);
 
     int numericGraphStructure = getGraphStructure(graphStructure);
 
@@ -130,15 +131,26 @@ int main (int argc, char * argv[])
         Node * node = new Node();
 
         // Choosing an external degree (connections with G - H) independently and uniformly at random from [d0, d1]
-        int externalDegree = distribution(generator);
-        node->setExternalDegree(externalDegree);
-        cout << "attacker_" + to_string(i) << ", " << externalDegree << endl;
+        int maximumExternalDegree = distribution(generator);
+        node->setMaximumExternalDegree(maximumExternalDegree);
+        cout << "attacker_" + to_string(i) << ", " << maximumExternalDegree << endl;
 
         // Including each (Xi, Xi+1)
+        // Generating the remain edges inside H
         if (i != (kNewAccounts - 1))
         {
             // Since it`s an undirected graph, we only need to add the edge once
             node->addNeighbor("attacker_" + to_string(i + 1));
+        }
+
+        // Include each other (Xi, Xj) independently with probability 1/2
+        for (int j = (i + 1); j < kNewAccounts; j++)
+        {
+            // is this independently??
+            if (rand() % 2 == 1)
+            {
+                node->addNeighbor("attacker_" + to_string(j));
+            }
         }
 
         newAccounts.set("attacker_" + to_string(i), * node);
@@ -148,23 +160,45 @@ int main (int argc, char * argv[])
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
     // each Nj has size at most c, and each Xi (attackers/new account) appears at most Di (it`s external degree)
     // of the sets Nj
+    int c = 3;
+    // Initializing list with all attackers (and we remove from it as soon as it reaches it`s external degree
+    unordered_set<string> newAccountKeys = newAccounts.getKeys();
     for (int i = 0; i < targetedNodes.size(); i++)
     {
+        // Getting at most c attackers from the list
 
+        // HOW TO DO THIS????
+
+        // Updating external degree until it reaches maximum external degree
     }
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
-
-    // Generating the remain edges inside H
-    // Include each other (Xi, Xj) independently with probability 1/2
-    for (int i = 0; i < kNewAccounts; i++)
+    // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
+    ofstream file;
+    file.open(outputFilePath, fstream::app);
+    for (int k = 0; k < kNewAccounts; k++)
     {
+        string nodeLabel = "attacker_" + to_string(k);
+        Node node = newAccounts.get(nodeLabel);
+        int count = k;
+        while(node.getMaximumExternalDegree() != node.getExternalDegree())
+        {
+            auto random_it = next(std::begin(nodes), rand() % nodes.size());
+            node.addNeighbor(*random_it); // any node inside nodes unordered_set
+            node.setExternalDegree(node.getExternalDegree() + 1);
+        }
+        newAccounts.set(nodeLabel, node);
 
+        // Writing it to file
+        unordered_set<string> neighbors = node.neighbors;
+        for (unsigned i = 0; i < neighbors.bucket_count(); ++i)
+        {
+            for (auto local_it = neighbors.begin(i); local_it != neighbors.end(i); ++local_it)
+            {
+                file << nodeLabel << " " << *local_it << "\n";
+            }
+        }
     }
-
-    // Since we are not deleting any node or edge, we just need to update the graph that we already have
-    // with the new nodes and new edges - this is what we are calling subgraph
-    // HashTable<string, Node> subgraph;
 
     return 0;
 }
