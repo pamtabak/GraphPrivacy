@@ -58,10 +58,10 @@ unordered_set<string> readNodes (int numericGraphStructure, string filePath)
     return nodes;
 }
 
-void writeAnonymizedGraph (HashTable<string, string> permutationFunction, int numericGraphStructure, string filePath)
+void writeAnonymizedGraph (HashTable<string, string> permutationFunction, int numericGraphStructure, string filePath, string outputDirectoryPath)
 {
     ifstream file(filePath);
-    string anonymizedGraphFileName = "anonymizedGraph.txt";
+    string anonymizedGraphFileName = outputDirectoryPath + "anonymizedGraph.txt";
 
     ofstream newGraphFile    (anonymizedGraphFileName,std::ofstream::binary);
     switch (numericGraphStructure)
@@ -84,15 +84,15 @@ int main (int argc, char * argv[])
 {
     // Input: graph (G)
     // Path to graph G and way it`s structured
-    if(argc != 3)
+    if(argc != 4)
     {
         cout << "Wrong number of parameters." << endl;
         return EXIT_FAILURE;
     }
 
     string filePath(argv[1]);
-
-    string graphStructure(argv[2]);
+    string outputDirectoryPath(argv[2]);
+    string graphStructure(argv[3]);
     int numericGraphStructure = getGraphStructure(graphStructure);
 
     // Reading input file
@@ -114,8 +114,8 @@ int main (int argc, char * argv[])
     }
 
     // Write new graph and permutation function
-    writeAnonymizedGraph(permutationFunction, numericGraphStructure, filePath);
-    permutationFunction.writeToFile("permutationFunction.txt");
+    writeAnonymizedGraph(permutationFunction, numericGraphStructure, filePath, outputDirectoryPath);
+    permutationFunction.writeToFile(outputDirectoryPath + "permutationFunction.txt");
 
     // Output: anonymized graph (AG) and function used for anonymization
     // ex: node a in G is node 121 in AG
