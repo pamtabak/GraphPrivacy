@@ -8,6 +8,8 @@
 #include <stdio.h>      /* printf, scanf, puts, NULL */
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
+#include<list>
+#include <algorithm>
 
 using namespace std;
 
@@ -77,6 +79,24 @@ vector<string> readTargetedNodes (string filePath)
     }
 
     return targetedNodes;
+}
+
+// generates all subsets from an array with determined size
+void subset(vector<string> arr, int size, int left, int index, list<string> &l, vector<list<string> > & subsets)
+{
+    if(left==0)
+    {
+        // new subset generated
+        subsets.push_back(l);
+        return;
+    }
+
+    for(int i=index; i<size;i++)
+    {
+        l.push_back(arr[i]);
+        subset(arr,size,left-1,i+1,l, subsets);
+        l.pop_back();
+    }
 }
 
 int main (int argc, char * argv[])
@@ -160,27 +180,65 @@ int main (int argc, char * argv[])
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
     // each Nj has size at most c, and each Xi (attackers/new account) appears at most Di (it`s external degree)
     // of the sets Nj
-    int c = 3;
+    int maximumSubsetSize = 3; // c
     // Initializing list with all attackers (and we remove from it as soon as it reaches it`s external degree
-    unordered_set<string> newAccountKeys = newAccounts.getKeys();
+    vector<string> newAccountKeys = newAccounts.getKeys();
+
+    // Generating all possible subsets from new account keys that have size at most equals to maximum subset size
+    vector<list<string> > allPossibleSubsets;
+    list<string> lt;
+    for (int i = 1; i <= maximumSubsetSize; i++)
+    {
+        subset(newAccountKeys, newAccountKeys.size(), i, 0, lt, allPossibleSubsets);
+    }
+
     for (int i = 0; i < targetedNodes.size(); i++)
     {
-        // Getting at most c attackers from the list
+        bool generatedSubset = false;
+        while (!generatedSubset)
+        {
+            // Getting random subset from all possible subsets
+            list<string> subset = allPossibleSubsets[rand() % allPossibleSubsets.size()];
 
-        // HOW TO DO THIS????
+            // Checking if this subset can be used
+            // All of its nodes need to be able to create external edges, so it can`t have already reached it`s maximum
+            bool subsetCanBeUsed = true;
+            for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
+            {
+                Node node = newAccounts.get(*it);
+                if (node.getExternalDegree() == node.getMaximumExternalDegree())
+                {
+                    subsetCanBeUsed = false;
+                    break;
+                }
+            }
 
-        // Updating external degree until it reaches maximum external degree
+            if (subsetCanBeUsed)
+            {
+                generatedSubset = true;
+                // Updating external degree until it reaches maximum external degree
+                for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
+                {
+                    Node node = newAccounts.get(*it);
+                    node.setExternalDegree(node.getExternalDegree() + 1);
+                    node.addNeighbor(targetedNodes[i]);
+                    newAccounts.set(*it, node);
+                }
+            }
+
+            // Removing subset from all possible subsets
+            allPossibleSubsets.erase(std::remove(allPossibleSubsets.begin(), allPossibleSubsets.end(), subset), allPossibleSubsets.end());
+        }
     }
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
     ofstream file;
-    file.open(outputFilePath, fstream::app);
+    file.open(outputFilePath, std::fstream::out | std::fstream::trunc);
     for (int k = 0; k < kNewAccounts; k++)
     {
         string nodeLabel = "attacker_" + to_string(k);
         Node node = newAccounts.get(nodeLabel);
-        int count = k;
         while(node.getMaximumExternalDegree() != node.getExternalDegree())
         {
             auto random_it = next(std::begin(nodes), rand() % nodes.size());
