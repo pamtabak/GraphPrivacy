@@ -153,14 +153,22 @@ int main (int argc, char * argv[])
         // Choosing an external degree (connections with G - H) independently and uniformly at random from [d0, d1]
         int maximumExternalDegree = distribution(generator);
         node->setMaximumExternalDegree(maximumExternalDegree);
-        cout << "attacker_" + to_string(i) << ", " << maximumExternalDegree << endl;
+
+		string nodeLabel = "attacker_" + to_string(i);
+        cout << nodeLabel << ", " << maximumExternalDegree << endl;
 
         // Including each (Xi, Xi+1)
         // Generating the remain edges inside H
         if (i != (kNewAccounts - 1))
         {
             // Since it`s an undirected graph, we only need to add the edge once
-            node->addNeighbor("attacker_" + to_string(i + 1));
+			string neighborLabel = "attacker_" + to_string(i + 1);
+			node->addNeighbor(neighborLabel);
+			node->setDegree(node->getDegree() + 1);
+
+			Node neighborNode = newAccounts.get(neighborLabel);
+			neighborNode.setDegree(node->getDegree() + 1);
+			newAccounts.set(neighborLabel, neighborNode);
         }
 
         // Include each other (Xi, Xj) independently with probability 1/2
@@ -169,11 +177,17 @@ int main (int argc, char * argv[])
             // is this independently??
             if (rand() % 2 == 1)
             {
-                node->addNeighbor("attacker_" + to_string(j));
+				string neighborLabel = "attacker_" + to_string(i + 1);
+				node->addNeighbor(neighborLabel);
+				node->setDegree(node->getDegree() + 1);
+
+				Node neighborNode = newAccounts.get(neighborLabel);
+				neighborNode.setDegree(node->getDegree() + 1);
+				newAccounts.set(neighborLabel, neighborNode);
             }
         }
 
-        newAccounts.set("attacker_" + to_string(i), * node);
+		newAccounts.set(nodeLabel, *node);
         delete node;
     }
 
@@ -221,6 +235,7 @@ int main (int argc, char * argv[])
                 {
                     Node node = newAccounts.get(*it);
                     node.setExternalDegree(node.getExternalDegree() + 1);
+					node.setDegree(node.getDegree() + 1);
                     node.addNeighbor(targetedNodes[i]);
                     newAccounts.set(*it, node);
                 }
@@ -233,8 +248,9 @@ int main (int argc, char * argv[])
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-    ofstream file;
-    file.open(outputFilePath, std::fstream::out | std::fstream::trunc);
+    ofstream file, degreeFile;
+    file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
+	file.open(outputFilePath + "degree.txt",   std::fstream::out | std::fstream::trunc);
     for (int k = 0; k < kNewAccounts; k++)
     {
         string nodeLabel = "attacker_" + to_string(k);
@@ -244,6 +260,7 @@ int main (int argc, char * argv[])
             auto random_it = next(std::begin(nodes), rand() % nodes.size());
             node.addNeighbor(*random_it); // any node inside nodes unordered_set
             node.setExternalDegree(node.getExternalDegree() + 1);
+			node.setDegree(node.getDegree() + 1);
         }
         newAccounts.set(nodeLabel, node);
 
@@ -256,6 +273,8 @@ int main (int argc, char * argv[])
                 file << nodeLabel << " " << *local_it << "\n";
             }
         }
+
+		degreeFile << nodeLabel << ", " << node.getDegree() << "\n";
     }
 
     return 0;

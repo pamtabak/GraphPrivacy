@@ -18,9 +18,7 @@ public:
     // else, it`s 0
     int externalDegree;
     int maximumExternalDegree;
-
-//    // Node`s degree
-//    int degree;
+	int degree;
 
     // Node`s neighbors
     unordered_set<string> neighbors;
@@ -34,6 +32,16 @@ public:
     {
        return this->externalDegree;
     }
+
+	void setDegree (int degree)
+	{
+		this->degree = degree;
+	}
+
+	int getDegree()
+	{
+		return this->degree;
+	}
 
     void setMaximumExternalDegree (int maximumExternalDegree)
     {
@@ -58,6 +66,7 @@ public:
     Node ()
     {
         this->externalDegree = 0;
+		this->degree         = 0;
     }
 
     ~Node()
