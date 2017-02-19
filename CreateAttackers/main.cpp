@@ -297,8 +297,7 @@ int main (int argc, char * argv[])
     unsigned int kNewAccounts = (unsigned int) ((2 + y) * logNumberOfNodes);
     cout << "number of attackers: " << kNewAccounts << endl;
 
-    // Setting edges between the attackers
-    // Setting maximum external degree
+    // Initializing attackers: Setting edges between the attackers and maximum external degree
     HashTable<string, Node> newAccounts = initializeAttackers(d0, d1, kNewAccounts);
 
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
