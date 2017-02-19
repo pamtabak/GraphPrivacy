@@ -81,73 +81,15 @@ vector<string> readTargetedNodes (string filePath)
     return targetedNodes;
 }
 
-// generates all subsets from an array with determined size
-void subset(vector<string> arr, int size, int left, int index, list<string> &l, vector<list<string> > & subsets)
+HashTable<string, Node> initializeAttackers (int d0, int d1, int kNewAccounts)
 {
-    if(left==0)
-    {
-        // new subset generated
-        subsets.push_back(l);
-        return;
-    }
-
-    for(int i=index; i<size;i++)
-    {
-        l.push_back(arr[i]);
-        subset(arr,size,left-1,i+1,l, subsets);
-        l.pop_back();
-    }
-}
-
-int main (int argc, char * argv[])
-{
-    // Output: new graph G (with attackers on it)
-
-    // Input: Path to graph G and way it`s structured, Path to list of target nodes
-    if(argc != 5)
-    {
-        cout << "Wrong number of parameters." << endl;
-        return EXIT_FAILURE;
-    }
-
-    string graphFilePath(argv[1]);
-    string targetedNodesFilePath(argv[2]);
-    string outputFilePath(argv[3]);
-    string graphStructure(argv[4]);
-
-    int numericGraphStructure = getGraphStructure(graphStructure);
-
-    // Reading graph (we only need node`s labels and number of nodes)
-    unordered_set<string> nodes         = readGraph (numericGraphStructure, graphFilePath);
-    int                   numberOfNodes = (int) nodes.size();
-    cout << "number of nodes: " << numberOfNodes << endl;
-
-    // Reading targeted nodes
-    vector<string> targetedNodes = readTargetedNodes(targetedNodesFilePath);
-    cout << "number of targeted nodes: " << targetedNodes.size() << endl;
-
-    /* initialize random seed: */
-    srand (time(NULL));
-
-    // Choose constants 1 <= d0 <= d1 = O(log n)
-    double logNumberOfNodes = log10(numberOfNodes);
-    int    d1               = (int) logNumberOfNodes;
-    if (d1 == 0) {d1 = 1;} // In case the number of nodes is too low
-    int    d0               = (rand() % d1) + 1; // random number between 1 and d1
-    cout << "[d0, d1]: [" << d0 << ", " << d1 << "]" << endl;
-
-    //  Create k = (2 + y) log n -> new accounts, small constant y > 0
-    int          y            = 3; // should this constant be a param?
-    unsigned int kNewAccounts = (unsigned int) ((2 + y) * logNumberOfNodes);
-    HashTable<string, Node> newAccounts; // Node "label" is unique
-    cout << "number of attackers: " << kNewAccounts << endl;
+    HashTable<string, Node> newAccounts;
 
     // Initializing new accounts
     for (int i = 0; i < kNewAccounts; i++)
     {
         Node * node = new Node();
         newAccounts.set("attacker_" + to_string(i), *node);
-
         delete node;
     }
 
@@ -175,6 +117,7 @@ int main (int argc, char * argv[])
             node.addNeighbor(neighborLabel);
             node.setDegree(node.getDegree() + 1);
 
+            // But we need to update both node`s degrees
             Node neighborNode = newAccounts.get(neighborLabel);
             neighborNode.setDegree(neighborNode.getDegree() + 1);
             newAccounts.set(neighborLabel, neighborNode);
@@ -198,13 +141,64 @@ int main (int argc, char * argv[])
         newAccounts.set(nodeLabel, node);
     }
 
-    // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
-    // each Nj has size at most c, and each Xi (attackers/new account) appears at most Di (it`s external degree)
-    // of the sets Nj
-    int maximumSubsetSize = 3; // c
-    // Initializing list with all attackers (and we remove from it as soon as it reaches it`s external degree
-    vector<string> newAccountKeys = newAccounts.getKeys();
+    return newAccounts;
+}
 
+// generates all subsets (with size specified) from an array
+void subset(vector<string> arr, int size, int left, int index, list<string> &l, vector<list<string> > & subsets)
+{
+    if(left==0)
+    {
+        // new subset generated
+        subsets.push_back(l);
+        return;
+    }
+
+    for(int i=index; i<size;i++)
+    {
+        l.push_back(arr[i]);
+        subset(arr,size,left-1,i+1,l, subsets);
+        l.pop_back();
+    }
+}
+
+void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, HashTable<string, Node> &newAccounts, unordered_set<string> nodes)
+{
+    ofstream file, degreeFile;
+    file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
+    degreeFile.open(outputFilePath + "degree.txt",   std::fstream::out | std::fstream::trunc);
+
+    // Writing number of attackers to degree file
+    degreeFile << kNewAccounts << endl;
+
+    for (int k = 0; k < kNewAccounts; k++)
+    {
+        string nodeLabel = "attacker_" + to_string(k);
+        Node node = newAccounts.get(nodeLabel);
+        while (node.getMaximumExternalDegree() != node.getExternalDegree())
+        {
+            auto random_it = next(std::begin(nodes), rand() % nodes.size());
+            node.addNeighbor(*random_it); // any node inside nodes unordered_set
+            node.setExternalDegree(node.getExternalDegree() + 1);
+            node.setDegree(node.getDegree() + 1);
+        }
+        newAccounts.set(nodeLabel, node);
+
+        // Writing it to file
+        unordered_set<string> neighbors = node.neighbors;
+        for (unsigned i = 0; i < neighbors.bucket_count(); ++i)
+        {
+            for (auto local_it = neighbors.begin(i); local_it != neighbors.end(i); ++local_it)
+            {
+                file << nodeLabel << " " << *local_it << "\n";
+            }
+        }
+        degreeFile << nodeLabel << ", " << node.getDegree() << "\n";
+    }
+}
+
+vector<list<string> > generateAllPossibleSubsets (int maximumSubsetSize, vector<string> newAccountKeys)
+{
     // Generating all possible subsets from new account keys that have size at most equals to maximum subset size
     vector<list<string> > allPossibleSubsets;
     list<string> lt;
@@ -212,6 +206,14 @@ int main (int argc, char * argv[])
     {
         subset(newAccountKeys, newAccountKeys.size(), i, 0, lt, allPossibleSubsets);
     }
+
+    return allPossibleSubsets;
+}
+
+void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int maximumSubsetSize)
+{
+    // Generates all subsets with size <= maximum subset size
+    vector<list<string> > allPossibleSubsets = generateAllPossibleSubsets(maximumSubsetSize, newAccounts.getKeys());
 
     for (int i = 0; i < targetedNodes.size(); i++)
     {
@@ -252,37 +254,62 @@ int main (int argc, char * argv[])
             allPossibleSubsets.erase(std::remove(allPossibleSubsets.begin(), allPossibleSubsets.end(), subset), allPossibleSubsets.end());
         }
     }
+}
+
+int main (int argc, char * argv[])
+{
+    // Output: attackers and it`s edges. Attackers degrees
+    // Input: Path to graph G and way it`s structured, Path to list of target nodes
+    if(argc != 5)
+    {
+        cout << "Wrong number of parameters." << endl;
+        return EXIT_FAILURE;
+    }
+
+    string graphFilePath(argv[1]);
+    string targetedNodesFilePath(argv[2]);
+    string outputFilePath(argv[3]);
+    string graphStructure(argv[4]);
+    int numericGraphStructure = getGraphStructure(graphStructure);
+
+    // Reading graph (we only need node`s labels and number of nodes)
+    unordered_set<string> nodes         = readGraph (numericGraphStructure, graphFilePath);
+    int                   numberOfNodes = (int) nodes.size();
+    cout << "number of nodes: " << numberOfNodes << endl;
+
+    // Reading targeted nodes
+    vector<string> targetedNodes = readTargetedNodes(targetedNodesFilePath);
+    cout << "number of targeted nodes: " << targetedNodes.size() << endl;
+
+    /* initialize random seed: */
+    srand (time(NULL));
+
+    // Choose constants 1 <= d0 <= d1 = O(log n)
+    double logNumberOfNodes = log10(numberOfNodes);
+    int    d1               = (int) logNumberOfNodes;
+    if (d1 == 0) {d1 = 1;} // In case the number of nodes is too low
+
+    int d0 = (rand() % d1) + 1; // random number between 1 and d1
+    cout << "[d0, d1]: [" << d0 << ", " << d1 << "]" << endl;
+
+    //  Create k = (2 + y) log n -> new accounts, small constant y > 0
+    int          y            = 3; // should this constant be a param?
+    unsigned int kNewAccounts = (unsigned int) ((2 + y) * logNumberOfNodes);
+    cout << "number of attackers: " << kNewAccounts << endl;
+
+    // Setting edges between the attackers
+    // Setting maximum external degree
+    HashTable<string, Node> newAccounts = initializeAttackers(d0, d1, kNewAccounts);
+
+    // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
+    // each Nj has size at most c, and each Xi (attackers/new account) appears at most Di (it`s external degree)
+    // of the sets Nj
+    int maximumSubsetSize = 3; // c
+    generateTargetedNodesSet (targetedNodes, newAccounts, maximumSubsetSize);
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-    ofstream file, degreeFile;
-    file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
-    degreeFile.open(outputFilePath + "degree.txt",   std::fstream::out | std::fstream::trunc);
-    for (int k = 0; k < kNewAccounts; k++)
-    {
-        string nodeLabel = "attacker_" + to_string(k);
-        Node node = newAccounts.get(nodeLabel);
-        while (node.getMaximumExternalDegree() != node.getExternalDegree())
-        {
-            auto random_it = next(std::begin(nodes), rand() % nodes.size());
-            node.addNeighbor(*random_it); // any node inside nodes unordered_set
-            node.setExternalDegree(node.getExternalDegree() + 1);
-            node.setDegree(node.getDegree() + 1);
-        }
-        newAccounts.set(nodeLabel, node);
-
-        // Writing it to file
-        unordered_set<string> neighbors = node.neighbors;
-        for (unsigned i = 0; i < neighbors.bucket_count(); ++i)
-        {
-            for (auto local_it = neighbors.begin(i); local_it != neighbors.end(i); ++local_it)
-            {
-                file << nodeLabel << " " << *local_it << "\n";
-            }
-        }
-
-        degreeFile << nodeLabel << ", " << node.getDegree() << "\n";
-    }
+    addExtraEdgesAndWriteOutputFiles (outputFilePath, kNewAccounts, newAccounts, nodes);
 
     return 0;
 }
