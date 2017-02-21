@@ -1,0 +1,53 @@
+Estudar sobre hashmap e hashset, entender a funcionalidade deles em grafos.
+
+em como adaptar algoritmo para pensar em como tornar algoritmo mais robusto. Ex: se uma aresta ou no do grafo H for deletado, grau sera alterado
+
+algoritmo funciona desde que nao delete nenhuma aresta ou no de H
+
+como transformar um grafo em arvore Gomory-Hu
+
+Procurar formatos padroes de entrada de grafos.
+
+Implementar o algoritmo Walk Based Attack:
+1) Criar H, regras que devem ser feitas. Recebe como entrada um grafo e os vertices que eu quero atacar, retornando o novo grafo G.
+2) Anonimizar os vertices, permutar os vertices. Escrevendo um novo grafo (que e o grafo de entrada permutado - randomPermutation) e gerando a funcao de transformacao (permutacao).
+3) Detectar H, isto e, um subgrafo em G. Encontrar nos alvos e recuperar relacoes entre eles - encontrar as identidades (pares de identidades, permutados).
+Estruturas de dados inteligentes: tabela-hash
+
+Relacao entre numero de alvos (b) e numero de contas novas a serem criadas (k)!!!
+Dependencia entre d0-d1: idealmente, proximo ao grau medio
+
+
+Se soubermos o grau de cada alvo, como fazer isso ajudar? Deletar (de maneira cautelosa) os vertices que possuem grau diferentes dos alvos e diferente dos atacantes  - ex: atacante pode estar conectado a qualquer no de G e isso pode alterar o grau dele, nao e tao simple, mas faria o algoritmo de reconhecimento ficar muito mais eficiente!
+
+TAREFAS EXTRAS:
+RandomPermutation: na permutacao, virar identificador aleatorio (ideia: indice de onde foi parar) - duas opcoes de saida. Alem disso, ler as arestas para o programa, ao em vez de passar pelo arquivo de entrada duas vezes
+Fazer grafico de execucao do programa em relacao a numero de arestas (multiplos de 10). Rodar cada programa 10/20x
+
+create attackers: criar aresta fechando o ciclo de atacantes (Xi, Xi+1) quando i for igual ao ultimo atacante
+
+trocar a funcao de rand -> marsene twister (metodo para gerar numeros aleatorios), 
+procurar bibliotecas
+
+Tirar log base 2 ao em vez de log10
+
+Mudar estrategia de como pegar um subset de nos atacantes para conectar com os nos alvos:
+- sorteia numeros aleatorios entre [d0,d1] e coloca em ordem (e depois decide qual grau vai para cada vertice atacante)
+- para cada no alvo, criar conjuntos distintos entre atacantes e alvos: Fazer em rodadas (sobre os alvos. termina quando todos os alvos tiverem conjuntos diferentes).inicializo todos os conjuntos vazios. Na primeira rodada, pegar primeiro atacante e colocar no conjunto do primeiro alvo, segundo atacante e colocar no conjunto do segundo alvo, quando terminarem os atacantes, volta para o primeiro atacante. Todos os atacantes de grau externo 1 ja geraram o seu subconjunto, isto e, todos os alvos que tiverem conectados a um atacante de grau 1 possui um subconjunto unico (isso na primeira rodada apenas). Dessa forma, esse no alvo ja resolveu seu problema (criar vetor de marcação dizendo que no alvo ja arrumou seu subconjunto unico). -> Não precisa mais dessa ideia de grau
+Rodada 2: para cada nó alvo não marcado, conecto ele ao vértice atacante ao próximo do que ele estiver conectado (ex: se já esta conectado ao nó atacante 1, se conectar ao nó atacante 2). Todos os atacantes estão disponíveis. Verificar todos que são distintos e anotar no vetor de marcação: criar um hash_map com a chave sendo o subconjunto (como estamos inserindo de maneira ordenada, funciona) criado e o valor o número de vezes que esse subconjunto aparece: no final, todos os valores que forem 1 desse hash_map são distintos e podemos marcar no nosso vetor. Fazer isso para cada rodada.
+CRIAR UM HASHSET INICIALMENTE: PARA TODA RODADA. SE SUBCONJUNTO AINDA NÃO ESTÁ NO HASHSET, MARCA O NÓ ALVO NO VETOR DE MARCAÇÃO E VAI PRO PRÓXIMO
+
+COMO DESCOBRIR D0 E D1?????????? tal que a geracao de numeros aleatorios encaixe com alta probabilidade
+QUANDO TODOS OS SUBCONJUNTOS FOREM DIFERENTES, DEFINIR O GRAU EXTERNO. ORDENAR A LISTA ALEATORIA GERADA E ORDENAR O GRAU EXTERNO DE CADA ATACANTE E CASÁ-LOS
+
+
+
+
+gerar grau maximo de cada no alvo a H (principio da decisao deferida). Conecta nos alvos a nos atacantes e depois decide qual grau maximo vai para cada no alvo (primeiro gerar sequencia de grau maximo de tamanho igual ao numero de nos alvos).
+Para cada no alvo, conectar a um 
+
+
+ao tentar completar grau externo de cada atacante, nao deixar pegar aleatoriamente um vertice targeted (para nao ter subconjuntos iguais conectados a dois nos targeted)
+
+Entender melhor sobre unordered_set, complexidade de insercao
+recover graph: entrada precisa receber o subgraph
