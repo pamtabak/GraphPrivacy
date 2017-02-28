@@ -4,8 +4,11 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
+
+chrono::high_resolution_clock::time_point startTime;
 
 HashTable<string, int> generatePossibleGraphStructures ()
 {
@@ -115,6 +118,9 @@ void writeAnonymizedGraph (HashTable<string, string> permutationFunction, HashTa
 
 int main (int argc, char * argv[])
 {
+    // When the execution has started
+    startTime = chrono::high_resolution_clock::now();
+
     /* If true, each node`s label becomes a numeric  id
      * If false, the node`s labels are replaced between themselves */
     bool randomIdentifiers = true;
@@ -145,6 +151,11 @@ int main (int argc, char * argv[])
 
     // Output: anonymized graph (AG) and function used for anonymization
     // ex: node a in G is node 121 in AG
+
+    // End of execution
+    chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
+    chrono::duration<double> endTimeSpan              = chrono::duration_cast<chrono::duration<double> >(endTime - startTime);
+    printf("end: %lf secs\n", endTimeSpan.count());
 
     return 0;
 }
