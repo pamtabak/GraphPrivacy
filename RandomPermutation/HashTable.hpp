@@ -4,6 +4,7 @@
 
 #include <unordered_map>
 #include <fstream>
+#include <vector>
 
 #ifndef RANDOMPERMUTATION_HASHTABLE_HPP
 #define RANDOMPERMUTATION_HASHTABLE_HPP
@@ -26,10 +27,15 @@ public:
         return this->hashMap[key];
     }
 
+    unordered_map<K, T> getMap ()
+    {
+        return this->hashMap;
+    }
+
     void writeToFile (string fileName)
     {
         ofstream file;
-        file.open(fileName, fstream::app);
+        file.open(fileName, fstream::binary);
         for (unsigned i = 0; i < this->hashMap.bucket_count(); ++i)
         {
             for (auto local_it = this->hashMap.begin(i); local_it!= this->hashMap.end(i); ++local_it)

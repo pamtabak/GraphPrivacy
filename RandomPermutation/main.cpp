@@ -32,10 +32,9 @@ void split(const std::string &s, char delimiter, Out result) {
     }
 }
 
-unordered_set<string> readNodes (int numericGraphStructure, string filePath)
+HashTable<string, unordered_set<string>> readGraph (int numericGraphStructure, string filePath, unordered_set<string> &nodes)
 {
-    // List all nodes (HashSet, so there are no duplicates)
-    unordered_set<string> nodes;
+    HashTable<string, unordered_set<string>> graph;
 
     ifstream file(filePath);
     switch (numericGraphStructure)
@@ -47,48 +46,87 @@ unordered_set<string> readNodes (int numericGraphStructure, string filePath)
                 // Each line is an edge - so there are two nodes per line, separated by whitespace
                 vector<string> nodeElements;
                 split(str, ' ', std::back_inserter(nodeElements));
-                for (int i = 0; i < nodeElements.size(); i++)
-                {
-                    // Iterating over each node found
-                    nodes.insert(nodeElements[i]);
-                }
+                unordered_set<string> neighbors = graph.get(nodeElements[0]);
+                neighbors.insert(nodeElements[1]);
+                graph.set(nodeElements[0], neighbors);
+
+                // Listing all different nodes
+                nodes.insert(nodeElements[0]);
+                nodes.insert(nodeElements[1]);
             }
             break;
     }
 
-    return nodes;
+    return graph;
 }
 
-void writeAnonymizedGraph (HashTable<string, string> permutationFunction, int numericGraphStructure, string filePath, string outputDirectoryPath)
+HashTable<string, string> randomPermutation (unordered_set<string> nodes, bool randomIdentifiers)
 {
-    ifstream file(filePath);
-    string anonymizedGraphFileName = outputDirectoryPath + "anonymizedGraph.txt";
-
-    ofstream newGraphFile    (anonymizedGraphFileName,std::ofstream::binary);
-    switch (numericGraphStructure)
+    // Since the std permutation function takes a vector as a param, we need to transform our nodes data into a vector
+    vector<string> vectorNodes;
+    for (const string& x: nodes)
     {
-        case 1:
-            string str;
-            while (getline(file, str))
+        vectorNodes.push_back(x);
+    }
+    random_shuffle (vectorNodes.begin(), vectorNodes.end());
+
+    HashTable<string, string> permutationFunction;
+
+    if (randomIdentifiers)
+    {
+        /* Each node`s label becomes a numeric  id
+         * In this case, it`s index on the permuted vector */
+        for (int i = 0; i < vectorNodes.size(); i++)
+        {
+            permutationFunction.set(vectorNodes[i], to_string(i));
+        }
+    }
+    else
+    {
+        /* Node`s labels are replaced between themselves */
+        int counter = 0;
+        for (auto it = nodes.begin(); it != nodes.end(); ++it)
+        {
+            // *it was transformed to vectorNodes[counter]
+            permutationFunction.set(*it, vectorNodes[counter]);
+            counter++;
+        }
+    }
+
+    return permutationFunction;
+}
+
+void writeAnonymizedGraph (HashTable<string, string> permutationFunction, HashTable<string, unordered_set<string>> graph, string outputDirectoryPath)
+{
+    ofstream newGraphFile (outputDirectoryPath + "anonymizedGraph.txt", ofstream::binary);
+    unordered_map<string, unordered_set<string>> map = graph.getMap();
+    for (unsigned i = 0; i < map.bucket_count(); ++i)
+    {
+        for (auto local_it = map.begin(i); local_it!= map.end(i); ++local_it)
+        {
+            unordered_set<string> neighbors = local_it->second;
+            for (const string& x: neighbors)
             {
-                // Each line is an edge - so there are two nodes per line, separated by whitespace
-                vector<string> nodeElements;
-                split(str, ' ', std::back_inserter(nodeElements));
-                // There are only two nodes - So nodeElements.size() == 2
-                newGraphFile << permutationFunction.get(nodeElements[0]) + " " + permutationFunction.get(nodeElements[1]) << endl;
+                newGraphFile << permutationFunction.get(local_it->first) + " " + permutationFunction.get(x) << endl;
             }
-            break;
+        }
     }
 }
 
 int main (int argc, char * argv[])
 {
-    // Input: graph (G)
-    // Path to graph G and way it`s structured
-    if(argc != 4)
+    /* If true, each node`s label becomes a numeric  id
+     * If false, the node`s labels are replaced between themselves */
+    bool randomIdentifiers = true;
+    if (argc < 4 || argc > 5)
     {
         cout << "Wrong number of parameters." << endl;
         return EXIT_FAILURE;
+    }
+    else if (argc == 5)
+    {
+        if (argv[4] != "randomIdentifiers")
+            randomIdentifiers = false;
     }
 
     string filePath(argv[1]);
@@ -96,26 +134,13 @@ int main (int argc, char * argv[])
     string graphStructure(argv[3]);
     int numericGraphStructure = getGraphStructure(graphStructure);
 
-    // Reading input file
-    unordered_set<string> nodes = readNodes(numericGraphStructure, filePath);
+    unordered_set<string> nodes;
+    HashTable<string, unordered_set<string>> graph = readGraph(numericGraphStructure, filePath, nodes);
 
-    // Run the random permutation
-    vector<string> vectorNodes; // we need it to be a vector, since we want to run the std permutation function
-    for (const std::string& x: nodes) vectorNodes.push_back(x);
-    random_shuffle (vectorNodes.begin(), vectorNodes.end());
-
-    // Permutation function
-    int counter = 0;
-    HashTable<string, string> permutationFunction;
-    for (auto it = nodes.begin(); it != nodes.end(); ++it)
-    {
-        // *it was transformed to vectorNodes[counter]
-        permutationFunction.set(*it, vectorNodes[counter]);
-        counter++;
-    }
+    HashTable<string, string> permutationFunction = randomPermutation(nodes, randomIdentifiers);
 
     // Write new graph and permutation function
-    writeAnonymizedGraph(permutationFunction, numericGraphStructure, filePath, outputDirectoryPath);
+    writeAnonymizedGraph(permutationFunction, graph, outputDirectoryPath);
     permutationFunction.writeToFile(outputDirectoryPath + "permutationFunction.txt");
 
     // Output: anonymized graph (AG) and function used for anonymization
