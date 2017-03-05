@@ -5,10 +5,26 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include <random>
+#include <string>
+#include <ctime>
 
 using namespace std;
 
 chrono::high_resolution_clock::time_point startTime;
+
+struct Generator {
+    mt19937 g;
+    Generator()
+            : g(static_cast<uint32_t>(time(0)))
+    {
+    }
+    size_t operator()(size_t n)
+    {
+        std::uniform_int_distribution<size_t> d(0, n ? n-1 : 0);
+        return d(g);
+    }
+};
 
 HashTable<string, int> generatePossibleGraphStructures ()
 {
@@ -71,7 +87,8 @@ HashTable<string, string> randomPermutation (unordered_set<string> nodes, bool r
     {
         vectorNodes.push_back(x);
     }
-    random_shuffle (vectorNodes.begin(), vectorNodes.end());
+
+    random_shuffle (vectorNodes.begin(), vectorNodes.end(), Generator());
 
     HashTable<string, string> permutationFunction;
 
