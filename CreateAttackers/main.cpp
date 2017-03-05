@@ -8,10 +8,13 @@
 #include <stdio.h>      /* printf, scanf, puts, NULL */
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
-#include<list>
+#include <list>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
+
+chrono::high_resolution_clock::time_point startTime;
 
 HashTable<string, int> generatePossibleGraphStructures ()
 {
@@ -110,22 +113,35 @@ HashTable<string, Node> initializeAttackers (int d0, int d1, int kNewAccounts)
 
         // Including each (Xi, Xi+1)
         // Generating the remain edges inside H
+        // Since it`s an undirected graph, we only need to add the edge once
+        string neighborLabel;
         if (i != (kNewAccounts - 1))
         {
-            // Since it`s an undirected graph, we only need to add the edge once
-            string neighborLabel = "attacker_" + to_string(i + 1);
-            node.addNeighbor(neighborLabel);
-            node.setDegree(node.getDegree() + 1);
-
-            // But we need to update both node`s degrees
-            Node neighborNode = newAccounts.get(neighborLabel);
-            neighborNode.setDegree(neighborNode.getDegree() + 1);
-            newAccounts.set(neighborLabel, neighborNode);
+            neighborLabel = "attacker_" + to_string(i + 1);
         }
+        else
+        {
+            // Adding the edge to close the circle connecting the attackers
+            // The last attacker is connected with the first attacker
+            neighborLabel = "attacker_" + to_string(0);
+        }
+        node.addNeighbor(neighborLabel);
+        node.setDegree(node.getDegree() + 1);
+
+        // But we need to update both node`s degrees
+        Node neighborNode = newAccounts.get(neighborLabel);
+        neighborNode.setDegree(neighborNode.getDegree() + 1);
+        newAccounts.set(neighborLabel, neighborNode);
 
         // Include each other (Xi, Xj) independently with probability 1/2
         for (int j = (i + 2); j < kNewAccounts; j++)
         {
+            if (i == 0 && j == kNewAccounts - 1)
+            {
+                // This edge already exists
+                continue;
+            }
+
             // is this independently??
             if (rand() % 2 == 1)
             {
@@ -162,7 +178,7 @@ void subset(vector<string> arr, int size, int left, int index, list<string> &l, 
     }
 }
 
-void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, HashTable<string, Node> &newAccounts, unordered_set<string> nodes)
+void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, HashTable<string, Node> &newAccounts, unordered_set<string> nodes, vector<string> targetedNodes)
 {
     ofstream file, degreeFile;
     file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
@@ -170,6 +186,13 @@ void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, 
 
     // Writing number of attackers to degree file
     degreeFile << kNewAccounts << endl;
+
+    /* Generating the remaining extra edges (until every attacker achieves it`s stipulated maximum external degree)
+     * between attackers and non targeted nodes */
+    for (int i = 0; i < targetedNodes.size(); i++)
+    {
+        nodes.erase(targetedNodes[i]);
+    }
 
     for (int k = 0; k < kNewAccounts; k++)
     {
@@ -258,6 +281,9 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
 
 int main (int argc, char * argv[])
 {
+    // Execution has started
+    startTime = chrono::high_resolution_clock::now();
+
     // Output: attackers and it`s edges. Attackers degrees
     // Input: Path to graph G and way it`s structured, Path to list of target nodes
     if(argc != 5)
@@ -284,15 +310,15 @@ int main (int argc, char * argv[])
     /* initialize random seed: */
     srand (time(NULL));
 
-    // Choose constants 1 <= d0 <= d1 = O(log n)
-    double logNumberOfNodes = log10(numberOfNodes);
+    // Choose constants 1 <= d0 <= d1 = O (log2 (n))
+    double logNumberOfNodes = log2(numberOfNodes);
     int    d1               = (int) logNumberOfNodes;
     if (d1 == 0) {d1 = 1;} // In case the number of nodes is too low
 
     int d0 = (rand() % d1) + 1; // random number between 1 and d1
     cout << "[d0, d1]: [" << d0 << ", " << d1 << "]" << endl;
 
-    //  Create k = (2 + y) log n -> new accounts, small constant y > 0
+    //  Create k = (2 + y) log2(n) -> new accounts, small constant y > 0
     int          y            = 3; // should this constant be a param?
     unsigned int kNewAccounts = (unsigned int) ((2 + y) * logNumberOfNodes);
     cout << "number of attackers: " << kNewAccounts << endl;
@@ -308,7 +334,12 @@ int main (int argc, char * argv[])
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-    addExtraEdgesAndWriteOutputFiles (outputFilePath, kNewAccounts, newAccounts, nodes);
+    addExtraEdgesAndWriteOutputFiles (outputFilePath, kNewAccounts, newAccounts, nodes, targetedNodes);
+
+    // End of execution
+    chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
+    chrono::duration<double> endTimeSpan              = chrono::duration_cast<chrono::duration<double> >(endTime - startTime);
+    printf("end: %lf secs\n", endTimeSpan.count());
 
     return 0;
 }

@@ -124,6 +124,7 @@ int main (int argc, char * argv[])
     /* If true, each node`s label becomes a numeric  id
      * If false, the node`s labels are replaced between themselves */
     bool randomIdentifiers = true;
+
     if (argc < 4 || argc > 5)
     {
         cout << "Wrong number of parameters." << endl;
@@ -140,17 +141,17 @@ int main (int argc, char * argv[])
     string graphStructure(argv[3]);
     int numericGraphStructure = getGraphStructure(graphStructure);
 
+    // All different nodes that appear on the graph
     unordered_set<string> nodes;
+    // All edges (since it`s an unidirectional graph, we only save the edge once)
     HashTable<string, unordered_set<string>> graph = readGraph(numericGraphStructure, filePath, nodes);
 
+    // The keys are the node`s original labels and the values its new labels
     HashTable<string, string> permutationFunction = randomPermutation(nodes, randomIdentifiers);
 
     // Write new graph and permutation function
     writeAnonymizedGraph(permutationFunction, graph, outputDirectoryPath);
     permutationFunction.writeToFile(outputDirectoryPath + "permutationFunction.txt");
-
-    // Output: anonymized graph (AG) and function used for anonymization
-    // ex: node a in G is node 121 in AG
 
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
