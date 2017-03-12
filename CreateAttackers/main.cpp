@@ -279,6 +279,89 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
     }
 }
 
+struct VectorHash {
+    size_t operator()(const std::vector<string>& v) const {
+        std::hash<string> hasher;
+        size_t seed = 0;
+        for (string i : v) {
+            seed ^= hasher(i) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+        }
+        return seed;
+    }
+};
+
+// Checks if all array positions are set with true. If so, return true. Else, return false
+bool isAllTrue (bool markerVector[], int markerVectorSize)
+{
+    for (int i = 0; i < markerVectorSize; i++)
+    {
+        if (markerVector[i] == false)
+        {
+            return  false;
+        }
+    }
+
+    return true;
+}
+
+void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts)
+{
+    // We save all different subsets here
+    unordered_set<vector<string>, VectorHash> differentSubsets;
+    HashTable<string, vector<string>> targetedNodesSubsets;
+    vector<string> attackers = newAccounts.getKeys();
+
+    // Defines whether a targeted node already has its attacker`s subset to connect
+    bool markerVector[targetedNodes.size()];
+    // Initializing marker vector with all positions as false
+    fill_n(markerVector, targetedNodes.size(), false);
+
+    while (!isAllTrue(markerVector, targetedNodes.size()))
+    {
+        // This is the expected to happen, but it`s not mandatory
+        if (targetedNodes.size() >= newAccounts.size())
+        {
+            for (int i = 0; i < targetedNodes.size(); i++)
+            {
+                if (markerVector[i])
+                {
+                    // This node already has it`s subset
+                    continue;
+                }
+
+                vector<string> newSubset = targetedNodesSubsets.get(targetedNodes[i]);
+                if (newSubset.size() == 0)
+                {
+                    newSubset.push_back(attackers[i % newAccounts.size()]);
+                }
+                else
+                {
+                    // adding the last one added + 1
+                    string lastAttackerAdded = newSubset[newSubset.size() - 1];
+                    ptrdiff_t pos = find(attackers.begin(), attackers.end(), lastAttackerAdded) - attackers.begin();
+                    if (pos == attackers.size() - 1) { pos = 0; }
+                    newSubset.push_back(attackers[pos + 1]);
+                }
+
+                targetedNodesSubsets.set(targetedNodes[i], newSubset);
+
+                unordered_set<vector<string>, VectorHash>::const_iterator got = differentSubsets.find (newSubset);
+                if ( got == differentSubsets.end() )
+                {
+                    // no other node has the same subset
+                    markerVector[i] = true;
+                }
+            }
+        }
+        else
+        {
+            // TO DO??
+        }
+    }
+
+    // Generate d0 and d1
+}
+
 int main (int argc, char * argv[])
 {
     // Execution has started

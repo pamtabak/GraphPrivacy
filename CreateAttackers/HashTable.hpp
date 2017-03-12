@@ -39,6 +39,11 @@ public:
         }
         return keys;
     }
+
+    int size ()
+    {
+        return this->hashMap.size();
+    }
 };
 
 
