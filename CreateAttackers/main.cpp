@@ -11,6 +11,7 @@
 #include <list>
 #include <algorithm>
 #include <chrono>
+#include<vector>
 
 using namespace std;
 
@@ -220,64 +221,64 @@ void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, 
     }
 }
 
-vector<list<string> > generateAllPossibleSubsets (int maximumSubsetSize, vector<string> newAccountKeys)
-{
-    // Generating all possible subsets from new account keys that have size at most equals to maximum subset size
-    vector<list<string> > allPossibleSubsets;
-    list<string> lt;
-    for (int i = 1; i <= maximumSubsetSize; i++)
-    {
-        subset(newAccountKeys, newAccountKeys.size(), i, 0, lt, allPossibleSubsets);
-    }
+//vector<list<string> > generateAllPossibleSubsets (int maximumSubsetSize, vector<string> newAccountKeys)
+//{
+//    // Generating all possible subsets from new account keys that have size at most equals to maximum subset size
+//    vector<list<string> > allPossibleSubsets;
+//    list<string> lt;
+//    for (int i = 1; i <= maximumSubsetSize; i++)
+//    {
+//        subset(newAccountKeys, newAccountKeys.size(), i, 0, lt, allPossibleSubsets);
+//    }
+//
+//    return allPossibleSubsets;
+//}
 
-    return allPossibleSubsets;
-}
-
-void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int maximumSubsetSize)
-{
-    // Generates all subsets with size <= maximum subset size
-    vector<list<string> > allPossibleSubsets = generateAllPossibleSubsets(maximumSubsetSize, newAccounts.getKeys());
-
-    for (int i = 0; i < targetedNodes.size(); i++)
-    {
-        bool generatedSubset = false;
-        while (!generatedSubset)
-        {
-            // Getting random subset from all possible subsets
-            list<string> subset = allPossibleSubsets[rand() % allPossibleSubsets.size()];
-
-            // Checking if this subset can be used
-            // All of its nodes need to be able to create external edges, so it can`t have already reached it`s maximum
-            bool subsetCanBeUsed = true;
-            for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
-            {
-                Node node = newAccounts.get(*it);
-                if (node.getExternalDegree() == node.getMaximumExternalDegree())
-                {
-                    subsetCanBeUsed = false;
-                    break;
-                }
-            }
-
-            if (subsetCanBeUsed)
-            {
-                generatedSubset = true;
-                // Updating external degree until it reaches maximum external degree
-                for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
-                {
-                    Node node = newAccounts.get(*it);
-                    node.setExternalDegree(node.getExternalDegree() + 1);
-                    node.setDegree(node.getDegree() + 1);
-                    node.addNeighbor(targetedNodes[i]);
-                    newAccounts.set(*it, node);
-                }
-            }
-
-            // Removing subset from all possible subsets
-            allPossibleSubsets.erase(std::remove(allPossibleSubsets.begin(), allPossibleSubsets.end(), subset), allPossibleSubsets.end());
-        }
-    }
-}
+//void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int maximumSubsetSize)
+//{
+//    // Generates all subsets with size <= maximum subset size
+//    vector<list<string> > allPossibleSubsets = generateAllPossibleSubsets(maximumSubsetSize, newAccounts.getKeys());
+//
+//    for (int i = 0; i < targetedNodes.size(); i++)
+//    {
+//        bool generatedSubset = false;
+//        while (!generatedSubset)
+//        {
+//            // Getting random subset from all possible subsets
+//            list<string> subset = allPossibleSubsets[rand() % allPossibleSubsets.size()];
+//
+//            // Checking if this subset can be used
+//            // All of its nodes need to be able to create external edges, so it can`t have already reached it`s maximum
+//            bool subsetCanBeUsed = true;
+//            for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
+//            {
+//                Node node = newAccounts.get(*it);
+//                if (node.getExternalDegree() == node.getMaximumExternalDegree())
+//                {
+//                    subsetCanBeUsed = false;
+//                    break;
+//                }
+//            }
+//
+//            if (subsetCanBeUsed)
+//            {
+//                generatedSubset = true;
+//                // Updating external degree until it reaches maximum external degree
+//                for (list<string>::iterator it = subset.begin(); it != subset.end(); ++it)
+//                {
+//                    Node node = newAccounts.get(*it);
+//                    node.setExternalDegree(node.getExternalDegree() + 1);
+//                    node.setDegree(node.getDegree() + 1);
+//                    node.addNeighbor(targetedNodes[i]);
+//                    newAccounts.set(*it, node);
+//                }
+//            }
+//
+//            // Removing subset from all possible subsets
+//            allPossibleSubsets.erase(std::remove(allPossibleSubsets.begin(), allPossibleSubsets.end(), subset), allPossibleSubsets.end());
+//        }
+//    }
+//}
 
 struct VectorHash {
     size_t operator()(const std::vector<string>& v) const {
@@ -312,9 +313,12 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
     vector<string> attackers = newAccounts.getKeys();
 
     // Defines whether a targeted node already has its attacker`s subset to connect
-    bool markerVector[targetedNodes.size()];
+	bool * markerVector = new bool[targetedNodes.size()];
     // Initializing marker vector with all positions as false
-    fill_n(markerVector, targetedNodes.size(), false);
+	for (int i = 0; i < targetedNodes.size(); i++)
+	{
+		markerVector[i] = false;
+	}
 
     while (!isAllTrue(markerVector, targetedNodes.size()))
     {
@@ -329,19 +333,34 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
                     continue;
                 }
 
+				string attackerLabel;
                 vector<string> newSubset = targetedNodesSubsets.get(targetedNodes[i]);
                 if (newSubset.size() == 0)
                 {
-                    newSubset.push_back(attackers[i % newAccounts.size()]);
+					// When subset is still empty, we make a simple calculation to get an attacker
+					attackerLabel = attackers[i % newAccounts.size()];
+					newSubset.push_back(attackerLabel);
                 }
                 else
                 {
-                    // adding the last one added + 1
+                    // Getting the last attacker added and adding the next attacker to it
+					// If Xi had been added, we now add Xi+1
                     string lastAttackerAdded = newSubset[newSubset.size() - 1];
-                    ptrdiff_t pos = find(attackers.begin(), attackers.end(), lastAttackerAdded) - attackers.begin();
-                    if (pos == attackers.size() - 1) { pos = 0; }
-                    newSubset.push_back(attackers[pos + 1]);
+					int num;
+					sscanf(lastAttackerAdded.c_str(), "%*[^_]_%d", &num);
+					if (num == attackers.size() - 1)
+						num = 0;
+					else
+						num += 1;
+
+					attackerLabel = "attacker_" + to_string(num);
+					newSubset.push_back(attackerLabel);
                 }
+
+				// Updating attacker's external degree
+				Node node = newAccounts.get(attackerLabel);
+				node.setExternalDegree(node.getExternalDegree() + 1);
+				newAccounts.set(attackerLabel, node);
 
                 targetedNodesSubsets.set(targetedNodes[i], newSubset);
 
@@ -349,17 +368,21 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
                 if ( got == differentSubsets.end() )
                 {
                     // no other node has the same subset
+					differentSubsets.insert(newSubset);
                     markerVector[i] = true;
                 }
             }
         }
         else
         {
-            // TO DO??
+            // TO DO?
+			// Can this situation happen ?
         }
     }
 
-    // Generate d0 and d1
+	delete[] markerVector;
+
+    // Generate d0 and d1!!!!!!!!!!!!!!!!!!!!
 }
 
 int main (int argc, char * argv[])
@@ -377,7 +400,7 @@ int main (int argc, char * argv[])
 
     string graphFilePath(argv[1]);
     string targetedNodesFilePath(argv[2]);
-    string outputFilePath(argv[3]);
+    string outputFolderPath(argv[3]);
     string graphStructure(argv[4]);
     int numericGraphStructure = getGraphStructure(graphStructure);
 
@@ -413,11 +436,12 @@ int main (int argc, char * argv[])
     // each Nj has size at most c, and each Xi (attackers/new account) appears at most Di (it`s external degree)
     // of the sets Nj
     int maximumSubsetSize = 3; // c
-    generateTargetedNodesSet (targetedNodes, newAccounts, maximumSubsetSize);
+    //generateTargetedNodesSet (targetedNodes, newAccounts, maximumSubsetSize);
+	generateTargetedNodesSet(targetedNodes, newAccounts);
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-    addExtraEdgesAndWriteOutputFiles (outputFilePath, kNewAccounts, newAccounts, nodes, targetedNodes);
+	addExtraEdgesAndWriteOutputFiles(outputFolderPath, kNewAccounts, newAccounts, nodes, targetedNodes);
 
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
