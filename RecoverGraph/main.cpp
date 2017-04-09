@@ -55,8 +55,10 @@ unordered_map<string, unordered_set<string>> readGraph (int numericGraphStructur
     return graph;
 }
 
-void getAttackersDegree(string filePath, int *attackersDegree[], int &numberOfAttackers)
+vector<int> getAttackersDegree(string filePath, int &numberOfAttackers)
 {
+    vector<int> attackersDegree;
+
     ifstream file(filePath);
     string str;
     int counter = 0;
@@ -66,7 +68,6 @@ void getAttackersDegree(string filePath, int *attackersDegree[], int &numberOfAt
         if (counter == 0)
         {
             numberOfAttackers = stoi(str);
-            *attackersDegree = new int [numberOfAttackers];
         }
         else
         {
@@ -74,11 +75,13 @@ void getAttackersDegree(string filePath, int *attackersDegree[], int &numberOfAt
             // So the length of node elements is 2
             vector<string> nodeElements;
             split(str, ' ', back_inserter(nodeElements));
-            (*attackersDegree)[counter - 1] = stoi(nodeElements[1]);
+            attackersDegree.push_back(stoi(nodeElements[1]));
         }
 
         counter += 1;
     }
+
+    return attackersDegree;
 }
 
 int main (int argc, char * argv[])
@@ -102,11 +105,8 @@ int main (int argc, char * argv[])
 
     // Read attackers information (we need the node`s degrees ordered by the attackers)
     // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
-    int * attackersDegree;
     int numberOfAttackers;
-    getAttackersDegree(attackersInformationPath, &attackersDegree, numberOfAttackers);
-
-
+    vector<int> attackersDegree = getAttackersDegree(attackersInformationPath, numberOfAttackers);
 
     vector<vector<string> > tree;
 
@@ -160,6 +160,5 @@ int main (int argc, char * argv[])
         }
     }
 
-    delete attackersDegree;
     return 0;
 }
