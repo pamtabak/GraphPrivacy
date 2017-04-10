@@ -106,7 +106,6 @@ HashTable<string, Node> initializeAttackers (int kNewAccounts)
 
         // Including each (Xi, Xi+1)
         // Generating the remain edges inside H
-        // Since it`s an undirected graph, we only need to add the edge once
         string neighborLabel;
         if (i != (kNewAccounts - 1))
         {
@@ -121,9 +120,9 @@ HashTable<string, Node> initializeAttackers (int kNewAccounts)
         node.addNeighbor(neighborLabel);
         node.setDegree(node.getDegree() + 1);
 
-        // But we need to update both node`s degrees
         Node neighborNode = newAccounts.get(neighborLabel);
         neighborNode.setDegree(neighborNode.getDegree() + 1);
+        neighborNode.addNeighbor(nodeLabel);
         newAccounts.set(neighborLabel, neighborNode);
 
         // Include each other (Xi, Xj) independently with probability 1/2
@@ -142,6 +141,7 @@ HashTable<string, Node> initializeAttackers (int kNewAccounts)
                 node.setDegree(node.getDegree() + 1);
 
                 Node neighborNode2 = newAccounts.get(neighborLabel2);
+                neighborNode2.addNeighbor(nodeLabel);
                 neighborNode2.setDegree(neighborNode2.getDegree() + 1);
                 newAccounts.set(neighborLabel2, neighborNode2);
             }
@@ -170,15 +170,8 @@ void subset(vector<string> arr, int size, int left, int index, list<string> &l, 
     }
 }
 
-void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, HashTable<string, Node> &newAccounts, unordered_set<string> nodes, vector<string> targetedNodes)
+void addExtraEdges (HashTable<string, Node> &newAccounts, unordered_set<string> nodes, vector<string> targetedNodes)
 {
-    ofstream file, degreeFile;
-    file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
-    degreeFile.open(outputFilePath + "degree.txt",   std::fstream::out | std::fstream::trunc);
-
-    // Writing number of attackers to degree file
-    degreeFile << kNewAccounts << endl;
-
     /* Generating the remaining extra edges (until every attacker achieves it`s stipulated maximum external degree)
      * between attackers and non targeted nodes */
     for (int i = 0; i < targetedNodes.size(); i++)
@@ -186,7 +179,7 @@ void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, 
         nodes.erase(targetedNodes[i]);
     }
 
-    for (int k = 0; k < kNewAccounts; k++)
+    for (int k = 0; k < newAccounts.size(); k++)
     {
         string nodeLabel = "attacker_" + to_string(k);
         Node node = newAccounts.get(nodeLabel);
@@ -198,19 +191,44 @@ void addExtraEdgesAndWriteOutputFiles (string outputFilePath, int kNewAccounts, 
             node.setDegree(node.getDegree() + 1);
         }
         newAccounts.set(nodeLabel, node);
+    }
+}
+
+void writeFile (string outputFilePath, HashTable<string, Node> newAccounts)
+{
+    ofstream file, degreeFile;
+    file.open(outputFilePath + "subgraph.txt", std::fstream::out | std::fstream::trunc);
+    degreeFile.open(outputFilePath + "degree.txt",   std::fstream::out | std::fstream::trunc);
+
+    // Writing number of attackers to degree file
+    degreeFile << newAccounts.size() << endl;
+
+    for (int k = 0; k < newAccounts.size(); k++)
+    {
+        string nodeLabel = "attacker_" + to_string(k);
+        Node node = newAccounts.get(nodeLabel);
 
         // Writing it to file
         unordered_set<string> neighbors = node.neighbors;
+        string neighborsDegree = "";
         for (unsigned i = 0; i < neighbors.bucket_count(); ++i)
         {
             for (auto local_it = neighbors.begin(i); local_it != neighbors.end(i); ++local_it)
             {
                 file << nodeLabel << " " << *local_it << "\n";
+
+                unordered_map<string, Node>::const_iterator got = newAccounts.hashMap.find(*local_it);
+                if (got != newAccounts.hashMap.end())
+                {
+                    Node neighborNode = got->second;
+                    neighborsDegree += to_string(neighborNode.getDegree()) + ",";
+                }
             }
         }
-        degreeFile << nodeLabel << ", " << node.getDegree() << "\n";
+        degreeFile << nodeLabel << ", " << node.getDegree() << ", " << node.getExternalDegree() << ", (" << neighborsDegree << ")\n";
     }
 }
+
 
 struct VectorHash {
     size_t operator()(const std::vector<string>& v) const {
@@ -431,11 +449,12 @@ int main (int argc, char * argv[])
 
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
     // Once the sets are defined, we give each attacker a maximum external degree
-	generateTargetedNodesSet(targetedNodes, newAccounts);
+    generateTargetedNodesSet(targetedNodes, newAccounts);
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-	addExtraEdgesAndWriteOutputFiles(outputFolderPath, kNewAccounts, newAccounts, nodes, targetedNodes);
+    addExtraEdges(newAccounts, nodes, targetedNodes);
+    writeFile(outputFolderPath, newAccounts);
 
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
