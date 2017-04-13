@@ -4,6 +4,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include "Node.hpp"
+#include <algorithm>
+#include <cctype>
 
 using namespace std;
 
@@ -55,9 +58,10 @@ unordered_map<string, unordered_set<string>> readGraph (int numericGraphStructur
     return graph;
 }
 
-vector<int> getAttackersDegree(string filePath, int &numberOfAttackers)
+// TO DO: total degree, external degree, (neighbor`s degrees)
+vector<Node> getAttackersInfo(string filePath, int &numberOfAttackers)
 {
-    vector<int> attackersDegree;
+    vector<Node> attackersDegree;
 
     ifstream file(filePath);
     string str;
@@ -71,17 +75,80 @@ vector<int> getAttackersDegree(string filePath, int &numberOfAttackers)
         }
         else
         {
-            // Each line represent`s one attacker, ordered, with it`s degree
-            // So the length of node elements is 2
+            Node * node = new Node();
+
+            vector<string> attackerInfo;
+            split(str, '(', back_inserter(attackerInfo));
+            if (attackerInfo.size() != 2)
+            {
+                continue;
+            }
+
+            vector<string> nodeDegreeInfo;
+            split(attackerInfo[0], ',', back_inserter(nodeDegreeInfo));
+            if (nodeDegreeInfo.size() != 3)
+            {
+                continue;
+            }
+            node->setDegree(stoi(nodeDegreeInfo[1]));
+
+            vector<string> neighborsDegreeInfo;
+            vector<int> attackerNeighborDegree;
+            string neighborInfo = attackerInfo[1];
+            split(neighborInfo, ',', back_inserter(neighborsDegreeInfo));
+            for (int i = 0 ; i < neighborsDegreeInfo.size(); i++)
+            {
+                if (neighborsDegreeInfo[i].empty() or ")" == neighborsDegreeInfo[i])
+                {
+                    continue;
+                }
+                attackerNeighborDegree.push_back(stoi(neighborsDegreeInfo[i]));
+            }
+            sort(attackerNeighborDegree.begin(), attackerNeighborDegree.end());
+
+            node->setAttackerNeighborDegree(attackerNeighborDegree);
+
             vector<string> nodeElements;
             split(str, ' ', back_inserter(nodeElements));
-            attackersDegree.push_back(stoi(nodeElements[1]));
+
+            attackersDegree.push_back(*node);
+            delete node;
         }
 
         counter += 1;
     }
 
     return attackersDegree;
+}
+
+bool includes (vector<int> first, vector<int> second)
+{
+    // both vectors are sorted
+    // second.size() <= first.size()
+    int firstIndexMatch = -1;
+    for (int i = 0; i < first.size(); i++)
+    {
+        if (first[i] != second[0])
+        {
+            continue;
+        }
+        firstIndexMatch = i;
+        break;
+    }
+
+    if (firstIndexMatch == -1 or (firstIndexMatch + second.size()) > first.size())
+    {
+        return false;
+    }
+
+    for (int j = 0; j < second.size(); j++)
+    {
+        if (first[firstIndexMatch + j] != second[j])
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 int main (int argc, char * argv[])
@@ -106,7 +173,7 @@ int main (int argc, char * argv[])
     // Read attackers information (we need the node`s degrees ordered by the attackers)
     // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
     int numberOfAttackers;
-    vector<int> attackersDegree = getAttackersDegree(attackersInformationPath, numberOfAttackers);
+    vector<Node> attackersDegree = getAttackersInfo(attackersInformationPath, numberOfAttackers);
 
     vector<vector<string> > tree;
 
@@ -116,38 +183,55 @@ int main (int argc, char * argv[])
     {
         for (auto local_it = graph.begin(i); local_it!= graph.end(i); ++local_it)
         {
-            if (local_it->second.size() == attackersDegree[0])
+            // First, we check if the degree is the one we are searching for
+            if (local_it->second.size() == attackersDegree[0].getDegree())
             {
-                vector<string> path;
-                path.push_back(local_it->first);
-                tree.push_back(path);
+                // Then we check if this node neighbor`s degrees contains the attacker`s degrees that the
+                // attacker_0 has
+                vector<int> nodeNeighborDegree;
+                for (unsigned i = 0; i < local_it->second.bucket_count(); ++i)
+                {
+                    for (auto it = local_it->second.begin(i); it != local_it->second.end(i); ++it)
+                    {
+                        nodeNeighborDegree.push_back(graph[*it].size());
+                    }
+                }
+
+                sort(nodeNeighborDegree.begin(), nodeNeighborDegree.end());
+                //cout << std::includes(nodeNeighborDegree.begin(), nodeNeighborDegree.end(), attackersDegree[0].getAttackerNeighborDegree().begin(), attackersDegree[0].getAttackerNeighborDegree().end()) << endl;
+                if (includes(nodeNeighborDegree, attackersDegree[0].getAttackerNeighborDegree()))
+                {
+                    vector<string> path;
+                    path.push_back(local_it->first);
+                    tree.push_back(path);
+                }
             }
         }
     }
 
-    int iterations = 1;
-    while (iterations != numberOfAttackers)
-    {
-        vector<vector<string> > newPaths;
-        for (int i = 0; i < tree.size(); i++)
-        {
-            vector<string> path = tree[i];
-            // Getting all neighbors from graph node (last node from path)
-            unordered_set<string> nodeNeighbors = graph[path[path.size() - 1]];
-            for (auto neighborIt = nodeNeighbors.begin(); neighborIt != nodeNeighbors.end(); ++neighborIt)
-            {
-                // Checking if node has the correct degree and it`s not already on the path
-                if ((graph[*neighborIt].size() == attackersDegree[iterations]) && (find(path.begin(), path.end(), *neighborIt) == path.end()))
-                {
-                    vector<string> tempPath = path;
-                    tempPath.push_back(*neighborIt);
-                    newPaths.push_back(tempPath);
-                }
-            }
-        }
-        tree = newPaths;
-        iterations += 1;
-    }
+//    int iterations = 1;
+//    while (iterations != numberOfAttackers)
+//    {
+//        vector<vector<string> > newPaths;
+//        for (int i = 0; i < tree.size(); i++)
+//        {
+//            vector<string> path = tree[i];
+//            // Getting all neighbors from graph node (last node from path)
+//            unordered_set<string> nodeNeighbors = graph[path[path.size() - 1]];
+//            for (auto neighborIt = nodeNeighbors.begin(); neighborIt != nodeNeighbors.end(); ++neighborIt)
+//            {
+//                // Checking if node has the correct degree and it`s not already on the path
+//                if ((graph[*neighborIt].size() == attackersDegree[iterations]) && (find(path.begin(), path.end(), *neighborIt) == path.end()))
+//                {
+//                    vector<string> tempPath = path;
+//                    tempPath.push_back(*neighborIt);
+//                    newPaths.push_back(tempPath);
+//                }
+//            }
+//        }
+//        tree = newPaths;
+//        iterations += 1;
+//    }
 
     cout << tree.size() << endl;
 

@@ -225,7 +225,7 @@ void writeFile (string outputFilePath, HashTable<string, Node> newAccounts)
                 }
             }
         }
-        degreeFile << nodeLabel << ", " << node.getDegree() << ", " << node.getExternalDegree() << ", (" << neighborsDegree << ")\n";
+        degreeFile << nodeLabel << "," << node.getDegree() << "," << node.getExternalDegree() << ",(" << neighborsDegree << ")\n";
     }
 }
 

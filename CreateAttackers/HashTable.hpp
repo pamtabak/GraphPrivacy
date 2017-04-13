@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <vector>
+#include <unordered_set>
 
 using namespace std;
 
@@ -35,6 +36,19 @@ public:
             for (auto local_it = this->hashMap.begin(i); local_it!= this->hashMap.end(i); ++local_it)
             {
                 keys.push_back(local_it->first);
+            }
+        }
+        return keys;
+    }
+
+    unordered_set<string> getKeysUnorderedSet()
+    {
+        unordered_set<string> keys;
+        for (unsigned i = 0; i < this->hashMap.bucket_count(); ++i)
+        {
+            for (auto local_it = this->hashMap.begin(i); local_it!= this->hashMap.end(i); ++local_it)
+            {
+                keys.insert(local_it->first);
             }
         }
         return keys;
