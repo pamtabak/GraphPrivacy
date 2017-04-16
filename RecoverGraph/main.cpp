@@ -251,20 +251,26 @@ int main (int argc, char * argv[])
                     }
                 }
             }
+            // clearing memory
+            nodeNeighbors = unordered_set<string>();
         }
         tree = newPaths;
         iterations += 1;
     }
 
-    cout << tree.size() << endl;
+    // cleaning memory
+    graph = unordered_map<string, unordered_set<string>>();
 
-    for (int i = 0; i < tree.size(); i++)
+    if (tree.size() != 1)
     {
-        cout << " " << endl;
-        for (int j = 0; j < tree[i].size(); j++)
-        {
-            cout << tree[i][j]  << ",";
-        }
+        cout << "failed" << endl;
+        return -1;
+    }
+
+    cout << " " << endl;
+    for (int j = 0; j < tree[0].size(); j++)
+    {
+        cout << tree[0][j]  << " ";
     }
     cout << "" << endl;
 
