@@ -7,8 +7,11 @@
 #include "Node.hpp"
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 
 using namespace std;
+
+chrono::high_resolution_clock::time_point startTime;
 
 unordered_map<string, int> generatePossibleGraphStructures ()
 {
@@ -163,6 +166,9 @@ int main (int argc, char * argv[])
         return EXIT_FAILURE;
     }
 
+    // Execution has started
+    startTime = chrono::high_resolution_clock::now();
+
     string graphFilePath(argv[1]);
     string attackersInformationPath(argv[2]);
     string outputFolderPath(argv[3]);
@@ -189,7 +195,6 @@ int main (int argc, char * argv[])
             // First, we check if the degree is the one we are searching for
             if (local_it->second.size() == attackersDegree[0].getDegree())
             {
-                cout << local_it->first << endl;
                 // Then we check if this node neighbor`s degrees contains the attacker`s degrees that the
                 // attacker_0 has
                 vector<int> nodeNeighborDegree;
@@ -202,7 +207,6 @@ int main (int argc, char * argv[])
                 }
 
                 sort(nodeNeighborDegree.begin(), nodeNeighborDegree.end());
-                //cout << std::includes(nodeNeighborDegree.begin(), nodeNeighborDegree.end(), attackersDegree[0].getAttackerNeighborDegree().begin(), attackersDegree[0].getAttackerNeighborDegree().end()) << endl;
                 if (includes(nodeNeighborDegree, attackersDegree[0].getAttackerNeighborDegree()))
                 {
                     vector<string> path;
@@ -227,8 +231,6 @@ int main (int argc, char * argv[])
                 // Checking if node has the correct degree and it`s not already on the path
                 if ((graph[*neighborIt].size() == attackersDegree[iterations].getDegree()) && (find(path.begin(), path.end(), *neighborIt) == path.end()))
                 {
-                    cout << *neighborIt << endl;
-
                     // Getting neighbor`s neighbors
                     vector<int> nodeNeighborDegree;
                     for (unsigned i = 0; i < graph[*neighborIt].bucket_count(); ++i)
@@ -264,6 +266,12 @@ int main (int argc, char * argv[])
             cout << tree[i][j]  << ",";
         }
     }
+    cout << "" << endl;
+
+    // End of execution
+    chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
+    chrono::duration<double> endTimeSpan              = chrono::duration_cast<chrono::duration<double> >(endTime - startTime);
+    cout << "end: " << endTimeSpan.count() << " secs" << endl;
 
     return 0;
 }
