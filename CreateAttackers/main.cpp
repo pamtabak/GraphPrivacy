@@ -268,7 +268,7 @@ int findD1 (int d0, int maxD)
     return 0;
 }
 
-void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts)
+void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int numberOfNodes)
 {
     bool couldGenerateSets = false;
 
@@ -289,6 +289,13 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         if (i == (numberOfAttackers - 1))
         {
             add_one_binary[i] = 1;
+            if (numberOfNodes > targetedNodes.size())
+            {
+                // We have nodes that aren`t targets
+                // So All targets attackers subsets can have at least one attacker
+                // Otherwise, we leave one target with no connections to attackers. And we identify it last
+                binary_subsets[i] = 1;
+            }
         }
 
         attackersArray[i] = newAccounts.get("attacker_" + to_string(i));
@@ -427,7 +434,7 @@ int main (int argc, char * argv[])
 
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
     // Once the sets are defined, we give each attacker a maximum external degree
-    generateTargetedNodesSet(targetedNodes, newAccounts);
+    generateTargetedNodesSet(targetedNodes, newAccounts, numberOfNodes);
 
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
