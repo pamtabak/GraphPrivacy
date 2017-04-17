@@ -271,15 +271,17 @@ int findD1 (int d0, int maxD)
 void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts)
 {
     bool couldGenerateSets = false;
-    vector<string> attackers = newAccounts.getKeys();
 
     // we create an int array with size = number of attackers
     // We start with a "0000000" binary number. For each position, if it`s 1, then that attacker should be at the
     // subset for that target. At each iteration, we add one to the binary number
     // This way, all targets will have different attacker subsets
     int numberOfAttackers = newAccounts.size();
-    int binary_subsets[numberOfAttackers];
-    int add_one_binary[numberOfAttackers];
+    int * binary_subsets = new int[numberOfAttackers];
+    int * add_one_binary = new int[numberOfAttackers];
+
+    // Making access to nodes faster
+    Node * attackersArray = new Node[numberOfAttackers];
     for (int i = 0; i < numberOfAttackers; i++)
     {
         binary_subsets[i] = 0;
@@ -288,29 +290,30 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         {
             add_one_binary[i] = 1;
         }
+
+        attackersArray[i] = newAccounts.get("attacker_" + to_string(i));
     }
 
     for (int i = 0; i < targetedNodes.size(); i++)
     {
+        cout << i << endl;
         for (int j = 0; j < newAccounts.size(); j++)
         {
             if (binary_subsets[j] == 1)
             {
-                string attackerLabel = "attacker_" + to_string(j);
-
                 // Updating attacker's external degree
-                Node node = newAccounts.get(attackerLabel);
+                Node node = attackersArray[j];
                 node.setExternalDegree(node.getExternalDegree() + 1);
                 node.setDegree(node.getDegree() + 1);
                 node.addNeighbor(targetedNodes[i]);
-                newAccounts.set(attackerLabel, node);
+                attackersArray[j] = node;
             }
         }
 
         // adding one to the binary sequence
         int carry = 0;
-        int sum[numberOfAttackers];
-        for(int j = 0; j < numberOfAttackers; j++)
+        int * sum = new int[numberOfAttackers];;
+        for(int j = numberOfAttackers - 1; j >= 0 ; j--)
         {
             sum[j] = ((binary_subsets[j] ^ add_one_binary[j]) ^ carry); // c is carry
             carry  = ((binary_subsets[j] & add_one_binary[j]) | (binary_subsets[j] & carry)) | (add_one_binary[j] & carry);
@@ -319,17 +322,24 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         {
             binary_subsets[j] = sum[j];
         }
+
+        delete[] sum;
     }
 
     // Once all targeted nodes have a subset (of attackers), we generate a maximum external degree
     // for each attacker
     vector<pair<string, int>> attackersExternalDegree;
-    for (int i = 0; i < attackers.size(); i++)
+    for (int i = 0; i < numberOfAttackers; i++)
     {
-        Node node = newAccounts.get(attackers[i]);
-        pair<string, int> pair1 (attackers[i], node.getExternalDegree());
+        newAccounts.set("attacker_" + to_string(i), attackersArray[i]);
+        Node node = attackersArray[i];
+        pair<string, int> pair1 ("attacker_" + to_string(i), node.getExternalDegree());
         attackersExternalDegree.push_back(pair1);
     }
+
+    delete[] binary_subsets;
+    delete[] add_one_binary;
+    delete[] attackersArray;
 
     // Sorting vector by the external degree
     sort(attackersExternalDegree.begin(), attackersExternalDegree.end(),[](const pair<string, int>& p1, const pair<string, int>& p2) {
@@ -357,7 +367,7 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         }
         sort(maximumExternalDegreeEmpiricalDistribution.begin(), maximumExternalDegreeEmpiricalDistribution.end());
 
-        cout << "maximum external degree: " << maximumExternalDegreeEmpiricalDistribution[newAccounts.size() - 1]
+        cout << "maximum external degree: " << maximumExternalDegreeEmpiricalDistribution[numberOfAttackers - 1]
              << endl;
 
         // Try to set a maximum external degree to each attacker, considering the external degree they already have
