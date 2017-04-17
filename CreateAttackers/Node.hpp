@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_set>
+#include <list>
 
 using namespace std;
 
@@ -21,7 +22,7 @@ public:
     int degree;
 
     // Node`s neighbors
-    unordered_set<string> neighbors;
+    list<string> neighbors;
 
     void setExternalDegree (int externalDegree)
     {
@@ -55,10 +56,10 @@ public:
 
     void addNeighbor (string neighbor)
     {
-        this->neighbors.insert(neighbor);
+        this->neighbors.push_back(neighbor);
     }
 
-    unordered_set<string> getNeighbors ()
+    list<string> getNeighbors ()
     {
         return this->neighbors;
     }

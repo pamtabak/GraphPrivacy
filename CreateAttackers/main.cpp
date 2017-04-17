@@ -135,7 +135,8 @@ HashTable<string, Node> initializeAttackers (int kNewAccounts)
                 continue;
             }
 
-            if (rand() % 2 == 1)
+            // G(n,p), p = 1/2
+            if (rand() % 2 == 1 )
             {
                 string neighborLabel2 = "attacker_" + to_string(j);
                 node.addNeighbor(neighborLabel2);
@@ -216,24 +217,20 @@ void writeFile (string outputFilePath, HashTable<string, Node> newAccounts)
         Node node = newAccounts.get(nodeLabel);
 
         // Writing it to file
-        unordered_set<string> neighbors = node.neighbors;
+        list<string> neighbors = node.neighbors;
         string neighborsDegree = "";
-        for (unsigned i = 0; i < neighbors.bucket_count(); ++i)
+        for (list<string>::iterator it=neighbors.begin(); it != neighbors.end(); ++it)
         {
-            for (auto local_it = neighbors.begin(i); local_it != neighbors.end(i); ++local_it)
-            {
-                file << nodeLabel << " " << *local_it << "\n";
+                file << nodeLabel << " " << *it << "\n";
 
-                unordered_map<string, Node>::const_iterator got = newAccounts.hashMap.find(*local_it);
+                unordered_map<string, Node>::const_iterator got = newAccounts.hashMap.find(*it);
                 if (got != newAccounts.hashMap.end())
                 {
                     Node neighborNode = got->second;
                     neighborsDegree += to_string(neighborNode.getDegree()) + ",";
                 }
-            }
         }
         degreeFile << nodeLabel << "," << node.getDegree() << "," << node.getExternalDegree() << ",(" << neighborsDegree << ")\n";
-        neighbors = unordered_set<string>();
     }
 }
 
