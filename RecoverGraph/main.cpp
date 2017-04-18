@@ -52,6 +52,10 @@ unordered_map<string, unordered_set<string>> readGraph (int numericGraphStructur
                 // Each line is an edge - so there are two nodes per line, separated by whitespace
                 vector<string> nodeElements;
                 split(str, ' ', back_inserter(nodeElements));
+                if (nodeElements.size() != 2)
+                {
+                    continue;
+                }
                 graph[nodeElements[0]].insert(nodeElements[1]);
                 graph[nodeElements[1]].insert(nodeElements[0]);
             }
@@ -157,33 +161,8 @@ bool includes (vector<int> first, vector<int> second)
     return true;
 }
 
-int main (int argc, char * argv[])
+vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>> graph, vector<Node> attackersDegree, int numberOfAttackers)
 {
-    // Input: Path to graph G and way it`s structured, Path to information about the attackers, output folder
-    if(argc != 5)
-    {
-        cout << "Wrong number of parameters." << endl;
-        return EXIT_FAILURE;
-    }
-
-    // Execution has started
-    startTime = chrono::high_resolution_clock::now();
-
-    string graphFilePath(argv[1]);
-    string attackersInformationPath(argv[2]);
-    string outputFolderPath(argv[3]);
-    string graphStructure(argv[4]);
-
-    int numericGraphStructure = getGraphStructure(graphStructure);
-
-    // Read graph
-    unordered_map<string, unordered_set<string>> graph = readGraph(numericGraphStructure, graphFilePath);
-
-    // Read attackers information (we need the node`s degrees ordered by the attackers)
-    // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
-    int numberOfAttackers;
-    vector<Node> attackersDegree = getAttackersInfo(attackersInformationPath, numberOfAttackers);
-
     vector<vector<string> > tree;
 
     // start tree with dummy node
@@ -258,21 +237,136 @@ int main (int argc, char * argv[])
         iterations += 1;
     }
 
-    // cleaning memory
-    graph = unordered_map<string, unordered_set<string>>();
-
     if (tree.size() != 1)
+    {
+        return vector<string>();
+    }
+
+    return tree[0];
+}
+
+void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, unordered_map<string, unordered_set<string>> graph, unordered_map<string, string> &identity)
+{
+    for (unsigned i = 0; i < subgraph.bucket_count(); ++i)
+    {
+        for (auto local_it = subgraph.begin(i); local_it!= subgraph.end(i); ++local_it)
+        {
+            // if node has not been identified yet
+            if (identity.find(local_it->first) == identity.end())
+            {
+                unordered_set<string> attackers;
+                for (auto neighborIt = local_it->second.begin(); neighborIt != local_it->second.end(); ++neighborIt)
+                {
+                    if (identity.find(*neighborIt) != identity.end())
+                    {
+                        string neighborLabel = *neighborIt;
+                        if (neighborLabel.find("attacker_") != string::npos)
+                        {
+                            attackers.insert(neighborLabel);
+                        }
+                    }
+                }
+
+                if (attackers.size() > 0)
+                {
+                    // For all subgraph nodes yet to be identified, check if
+                    // subgraph_degree <= graph_degree. If not, don`t even bother checking
+                    for (unsigned j = 0; j < graph.bucket_count(); ++j)
+                    {
+                        for (auto it = graph.begin(j); it != graph.end(j); ++it)
+                        {
+                            if (identity.find(it->first) == identity.end())
+                            {
+                                if (local_it->second.size() <= it->second.size())
+                                {
+                                    bool hasSameAttackers  = true;
+                                    int  numberOfAttackers = 0;
+
+                                    // getting all attackers from this node`s neighbors
+                                    for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
+                                    {
+                                        if (identity.find(*neighborIt) != identity.end())
+                                        {
+                                            string neighborLabel = *neighborIt;
+                                            if (neighborLabel.find("attacker_") != string::npos)
+                                            {
+                                                numberOfAttackers += 1;
+                                                if (attackers.find(neighborLabel) == attackers.end())
+                                                {
+                                                    hasSameAttackers = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (hasSameAttackers && numberOfAttackers == attackers.size())
+                                    {
+                                        // This only works if no-target nodes are not associated with attackers
+                                        identity[it->first] = local_it->first;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                attackers = unordered_set<string>();
+            }
+        }
+    }
+}
+
+int main (int argc, char * argv[])
+{
+    // Input: Path to graph G and way it`s structured, Path to information about the attackers, output folder
+    if(argc != 6)
+    {
+        cout << "Wrong number of parameters." << endl;
+        return EXIT_FAILURE;
+    }
+
+    // Execution has started
+    startTime = chrono::high_resolution_clock::now();
+
+    string graphFilePath(argv[1]);
+    string attackersInformationPath(argv[2]);
+    string outputFolderPath(argv[3]);
+    string graphStructure(argv[4]);
+    string subgraphFilePath(argv[5]);
+
+    int numericGraphStructure = getGraphStructure(graphStructure);
+
+    // Read graph
+    unordered_map<string, unordered_set<string>> graph    = readGraph(numericGraphStructure, graphFilePath);
+    unordered_map<string, unordered_set<string>> subgraph = readGraph(numericGraphStructure, subgraphFilePath);
+
+    // Read attackers information (we need the node`s degrees ordered by the attackers)
+    // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
+    int numberOfAttackers;
+    vector<Node> attackersDegree = getAttackersInfo(attackersInformationPath, numberOfAttackers);
+
+    vector<string> path = findOrderedAttackers (graph, attackersDegree, numberOfAttackers);
+    if (path.size() == 0)
     {
         cout << "failed" << endl;
         return -1;
     }
 
     cout << " " << endl;
-    for (int j = 0; j < tree[0].size(); j++)
+    unordered_map<string, string> identity;
+    for (int j = 0; j < path.size(); j++)
     {
-        cout << tree[0][j]  << " ";
+        cout << path[j]  << " ";
+        // attackers displayed in order
+        identity[path[j]] = "attacker_" + to_string(j);
     }
     cout << "" << endl;
+
+    getNodesIdentity (subgraph, graph, identity);
+
+    // clearing memory
+    identity         = unordered_map<string, string>();
+    graph            = unordered_map<string, unordered_set<string>>();
 
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
