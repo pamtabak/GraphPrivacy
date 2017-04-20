@@ -245,7 +245,7 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
     return tree[0];
 }
 
-void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, unordered_map<string, unordered_set<string>> graph, unordered_map<string, string> &identity)
+void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, unordered_map<string, unordered_set<string>> graph, unordered_map<string, string> &identity, unordered_map<string, string> &anonimized)
 {
     for (unsigned i = 0; i < subgraph.bucket_count(); ++i)
     {
@@ -255,6 +255,7 @@ void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, un
             if (identity.find(local_it->first) == identity.end())
             {
                 unordered_set<string> attackers;
+
                 for (auto neighborIt = local_it->second.begin(); neighborIt != local_it->second.end(); ++neighborIt)
                 {
                     if (identity.find(*neighborIt) != identity.end())
@@ -275,7 +276,7 @@ void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, un
                     {
                         for (auto it = graph.begin(j); it != graph.end(j); ++it)
                         {
-                            if (identity.find(it->first) == identity.end())
+                            if (anonimized.find(it->first) == identity.end())
                             {
                                 if (local_it->second.size() <= it->second.size())
                                 {
@@ -285,9 +286,9 @@ void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, un
                                     // getting all attackers from this node`s neighbors
                                     for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
                                     {
-                                        if (identity.find(*neighborIt) != identity.end())
+                                        if (anonimized.find(*neighborIt) != identity.end())
                                         {
-                                            string neighborLabel = *neighborIt;
+                                            string neighborLabel = anonimized[*neighborIt];
                                             if (neighborLabel.find("attacker_") != string::npos)
                                             {
                                                 numberOfAttackers += 1;
@@ -303,7 +304,8 @@ void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, un
                                     if (hasSameAttackers && numberOfAttackers == attackers.size())
                                     {
                                         // This only works if no-target nodes are not associated with attackers
-                                        identity[it->first] = local_it->first;
+                                        identity[local_it->first] = it->first;
+                                        anonimized[it->first]     = local_it->first;
                                     }
                                 }
                             }
@@ -353,18 +355,25 @@ int main (int argc, char * argv[])
     }
 
     cout << " " << endl;
+
+    // real label mapped to anonimized label
     unordered_map<string, string> identity;
+
+    // anonimized label mapped to real label
+    unordered_map<string, string> anonimized;
     for (int j = 0; j < path.size(); j++)
     {
-        cout << path[j]  << " ";
         // attackers displayed in order
-        identity[path[j]] = "attacker_" + to_string(j);
+        anonimized[path[j]] = "attacker_" + to_string(j);
+        identity["attacker_" + to_string(j)] = path[j];
+        cout << "attacker_" + to_string(j)  << " ";
     }
     cout << "" << endl;
 
-    getNodesIdentity (subgraph, graph, identity);
+    getNodesIdentity (subgraph, graph, identity, anonimized);
 
     // clearing memory
+    anonimized = unordered_map<string, string>();
     identity         = unordered_map<string, string>();
     graph            = unordered_map<string, unordered_set<string>>();
 
