@@ -163,38 +163,27 @@ void addExtraEdges (HashTable<string, Node> &newAccounts, unordered_set<string> 
         nodes.erase(targetedNodes[i]);
     }
 
+    // nodes are the all nodes that are not targets from the original graph
+
+    // each non target nodes can be only attached to one attacker
     for (int k = 0; k < newAccounts.size(); k++)
     {
         string nodeLabel = "attacker_" + to_string(k);
         Node node = newAccounts.get(nodeLabel);
-        if (nodes.size() < (node.getMaximumExternalDegree() - node.getExternalDegree()))
+        if (nodes.size() == 0)
         {
-            node.setMaximumExternalDegree(node.getExternalDegree() + nodes.size());
-            for (unsigned i = 0; i < nodes.bucket_count(); ++i)
-            {
-                for (auto local_it = nodes.begin(i); local_it != nodes.end(i); ++local_it)
-                {
-                    node.addNeighbor(*local_it);
-                    node.setExternalDegree(node.getExternalDegree() + 1);
-                    node.setDegree(node.getDegree() + 1);
-                }
-            }
+            break;
         }
-        else
-        {
-            unordered_set<string> possibleNodes = nodes;
-            while (node.getMaximumExternalDegree() != node.getExternalDegree())
-            {
-                auto random_it = next(std::begin(possibleNodes), rand() % possibleNodes.size());
-                node.addNeighbor(*random_it); // any node inside nodes unordered_set
-                node.setExternalDegree(node.getExternalDegree() + 1);
-                node.setDegree(node.getDegree() + 1);
-                possibleNodes.erase(*random_it);
-            }
 
-            // clearing memory
-            possibleNodes = std::unordered_set<string>();
+        while (node.getMaximumExternalDegree() != node.getExternalDegree() && nodes.size() > 0)
+        {
+            auto random_it = next(std::begin(nodes), rand() % nodes.size());
+            node.addNeighbor(*random_it); // any node inside nodes unordered_set
+            node.setExternalDegree(node.getExternalDegree() + 1);
+            node.setDegree(node.getDegree() + 1);
+            nodes.erase(*random_it);
         }
+
         newAccounts.set(nodeLabel, node);
     }
 
@@ -234,95 +223,108 @@ void writeFile (string outputFilePath, HashTable<string, Node> newAccounts)
     }
 }
 
-int findD1 (int d0, int maxD)
-{
-    // d1 > d0
+//int findD1 (int d0, int maxD)
+//{
+//    // d1 > d0
+//
+//    // pow(d1,2) - d1*maxD - d1*d0 + d0*maxD = d0*(1 - epsilon)
+//    // pow (d1,2) - d1(maxD + d0) + d0(maxD - 1 + epsilon) = 0
+//    // pow (d1,2) + d1(-d0 - maxD) + d0(maxD - 1 + epsilon) = 0
+//
+//    double rootA, rootB = 0.0;
+//    try {
+//        rootA = (-(-d0 - maxD) - sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
+//        rootB = (-(-d0 - maxD) + sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
+//    }
+//    catch (int e)
+//    {
+//        // some imaginary number was found (?)
+//    }
+//
+//    if (rootA > 0.0 && rootA > d0)
+//    {
+//        // rounding number. Ex: rootA is 54.6, so we return 55. If rootA is 54.4, we return 54
+//        return (int) (rootA + 0.5);
+//    }
+//    if (rootB > 0.0 && rootB > d0)
+//    {
+//        return (int) (rootB + 0.5);
+//    }
+//
+//    return 0;
+//}
 
-    // pow(d1,2) - d1*maxD - d1*d0 + d0*maxD = d0*(1 - epsilon)
-    // pow (d1,2) - d1(maxD + d0) + d0(maxD - 1 + epsilon) = 0
-    // pow (d1,2) + d1(-d0 - maxD) + d0(maxD - 1 + epsilon) = 0
-
-    double rootA, rootB = 0.0;
-    try {
-        rootA = (-(-d0 - maxD) - sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
-        rootB = (-(-d0 - maxD) + sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
-    }
-    catch (int e)
-    {
-        // some imaginary number was found (?)
-    }
-
-    if (rootA > 0.0 && rootA > d0)
-    {
-        // rounding number. Ex: rootA is 54.6, so we return 55. If rootA is 54.4, we return 54
-        return (int) (rootA + 0.5);
-    }
-    if (rootB > 0.0 && rootB > d0)
-    {
-        return (int) (rootB + 0.5);
-    }
-
-    return 0;
-}
-
-void calculateMaximumExternalDegree (HashTable<string, Node> &newAccounts, Node *attackersArray)
+void calculateMaximumExternalDegree (HashTable<string, Node> &newAccounts)
 {
     // Once all targeted nodes have a subset (of attackers), we generate a maximum external degree
     // for each attacker
-    vector<pair<string, int> > attackersExternalDegree;
+    default_random_engine generator;
+    generator.seed(newAccounts.size());
+
     for (int i = 0; i < newAccounts.size(); i++)
     {
-        Node node = attackersArray[i];
-        pair<string, int> pair1 ("attacker_" + to_string(i), node.getExternalDegree());
-        attackersExternalDegree.push_back(pair1);
-    }
+        string attackerLabel  = "attacker_" + to_string(i);
+        Node   node           = newAccounts.get(attackerLabel);
+        int    externalDegree = node.getExternalDegree();
+        int    d1;
 
-    // Sorting vector by the external degree
-    sort(attackersExternalDegree.begin(), attackersExternalDegree.end(),[](const pair<string, int>& p1, const pair<string, int>& p2) { return p1.second < p2.second; });
-
-    bool couldGenerateSets = false;
-    while (!couldGenerateSets)
-    {
-        // Generating maximum external degree distribution
-        // 1 <= d0 <= log2(numberOfNodes) == newAccounts.size()
-        int y = 3; // constant
-        int d0 = (rand() % (2 + y) * newAccounts.size()) + 1;
-        int maxD = attackersExternalDegree[attackersExternalDegree.size() - 1].second; // biggest empirical external degree
-        int d1 = findD1(d0, maxD);
-        //d1 = d1 * ((newAccounts.size() - 1) / d0); // d1 is O(log2(numberOfNodes), smaller than pow(log2(),2);
-
-        default_random_engine generator;
-        generator.seed(newAccounts.size());
-        uniform_int_distribution<int> distribution(d0, d1);
-
-        // Generate a list with n numbers (n = newAccounts.size()) between d0 and d1
-        vector<int> maximumExternalDegreeEmpiricalDistribution;
-        for (int i = 0; i < newAccounts.size(); i++) {
-            maximumExternalDegreeEmpiricalDistribution.push_back(distribution(generator));
-        }
-        sort(maximumExternalDegreeEmpiricalDistribution.begin(), maximumExternalDegreeEmpiricalDistribution.end());
-
-        cout << "maximum external degree: " << maximumExternalDegreeEmpiricalDistribution[newAccounts.size() - 1] << endl;
-
-        // Try to set a maximum external degree to each attacker, considering the external degree they already have
-        for (int i = 0; i < newAccounts.size(); i++)
+        if (externalDegree == 0)
         {
-            if (attackersExternalDegree[i].second > maximumExternalDegreeEmpiricalDistribution[i])
-            {
-                break;
-            }
-            Node node = newAccounts.get(attackersExternalDegree[i].first);
-            node.setMaximumExternalDegree(maximumExternalDegreeEmpiricalDistribution[i]);
-            newAccounts.set(attackersExternalDegree[i].first, node);
+            externalDegree += 1;
+            d1 = newAccounts.size(); // O(log n)
         }
-        couldGenerateSets = true;
+        else
+        {
+            d1 = (((rand() % newAccounts.size()) + 1) * externalDegree);
+        }
+
+        uniform_int_distribution<int> distribution(externalDegree, d1);
+
+        node.setMaximumExternalDegree(distribution(generator));
+        newAccounts.set(attackerLabel, node);
     }
+}
+
+bool onlyOneAttacker (int * binarySubsets, int size)
+{
+    int attacker = 0;
+    for (int i = 0; i < size; i++)
+    {
+        if (binarySubsets[i] == 1)
+        {
+            attacker += 1;
+        }
+    }
+
+    if (attacker == 1)
+    {
+        return true;
+    }
+    return false;
+}
+
+void binarySum (int * add_one_binary, int numberOfAttackers, int* & binary_subsets)
+{
+    // adding one to the binary sequence
+    int carry = 0;
+    int * sum = new int[numberOfAttackers];;
+    for(int j = numberOfAttackers - 1; j >= 0 ; j--)
+    {
+        sum[j] = ((binary_subsets[j] ^ add_one_binary[j]) ^ carry); // c is carry
+        carry  = ((binary_subsets[j] & add_one_binary[j]) | (binary_subsets[j] & carry)) | (add_one_binary[j] & carry);
+    }
+    for (int j = 0; j < numberOfAttackers; j++)
+    {
+        binary_subsets[j] = sum[j];
+    }
+
+    delete[] sum;
 }
 
 void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int numberOfNodes)
 {
     // we create an int array with size = number of attackers
-    // We start with a "0000000" binary number. For each position, if it`s 1, then that attacker should be at the
+    // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker should be at the
     // subset for that target. At each iteration, we add one to the binary number
     // This way, all targets will have different attacker subsets
     int numberOfAttackers = newAccounts.size();
@@ -338,13 +340,6 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         if (i == (numberOfAttackers - 1))
         {
             add_one_binary[i] = 1;
-            if (numberOfNodes > targetedNodes.size())
-            {
-                // We have nodes that aren`t targets
-                // So All targets attackers subsets can have at least one attacker
-                // Otherwise, we leave one target with no connections to attackers. And we identify it last
-                binary_subsets[i] = 1;
-            }
         }
 
         attackersArray[i] = newAccounts.get("attacker_" + to_string(i));
@@ -352,7 +347,13 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
 
     for (int i = 0; i < targetedNodes.size(); i++)
     {
-        //cout << i << endl;
+        // targets must have, at least, 2 attackers (so we can attach non targets to attackers)
+        if (onlyOneAttacker (binary_subsets, numberOfAttackers))
+        {
+            binarySum (add_one_binary, numberOfAttackers, binary_subsets);
+            continue;
+        }
+
         for (int j = 0; j < newAccounts.size(); j++)
         {
             if (binary_subsets[j] == 1)
@@ -366,20 +367,7 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
             }
         }
 
-        // adding one to the binary sequence
-        int carry = 0;
-        int * sum = new int[numberOfAttackers];;
-        for(int j = numberOfAttackers - 1; j >= 0 ; j--)
-        {
-            sum[j] = ((binary_subsets[j] ^ add_one_binary[j]) ^ carry); // c is carry
-            carry  = ((binary_subsets[j] & add_one_binary[j]) | (binary_subsets[j] & carry)) | (add_one_binary[j] & carry);
-        }
-        for (int j = 0; j < numberOfAttackers; j++)
-        {
-            binary_subsets[j] = sum[j];
-        }
-
-        delete[] sum;
+        binarySum (add_one_binary, numberOfAttackers, binary_subsets);
     }
 
     for (int i = 0; i < newAccounts.size(); i++)
@@ -387,7 +375,7 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
         newAccounts.set("attacker_" + to_string(i), attackersArray[i]);
     }
 
-    // calculateMaximumExternalDegree(newAccounts, attackersArray);
+    calculateMaximumExternalDegree(newAccounts);
 
     delete[] binary_subsets;
     delete[] add_one_binary;
@@ -396,7 +384,6 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
 
 int main (int argc, char * argv[])
 {
-    // Execution has started
     startTime = chrono::high_resolution_clock::now();
 
     // Output: attackers and it`s edges. Attackers degrees
@@ -416,20 +403,19 @@ int main (int argc, char * argv[])
     // Reading graph (we only need node`s labels and number of nodes)
     unordered_set<string> nodes         = readGraph (numericGraphStructure, graphFilePath);
     int                   numberOfNodes = (int) nodes.size();
-//    cout << "number of nodes: " << numberOfNodes << endl;
 
     // Reading targeted nodes
     vector<string> targetedNodes = readTargetedNodes(targetedNodesFilePath);
-//    cout << "number of targeted nodes: " << targetedNodes.size() << endl;
 
     /* initialize random seed: */
     srand (time(NULL));
 
-    //  Create k = (2 + y) log2(n) -> new accounts, small constant y > 0
-    //int          y            = 3; // should this constant be a param?
-    int kNewAccounts = ceil(log2(numberOfNodes));
-    //unsigned int kNewAccounts = (unsigned int) ((2 + y) * log2(numberOfNodes));
-//    cout << "number of attackers: " << kNewAccounts << endl;
+//    int kNewAccounts = (int) ceil(log2(numberOfNodes)) + 1;
+//    if ((1.0*targetedNodes.size())/numberOfNodes > 0.9)
+//    {
+//        kNewAccounts = kNewAccounts * 2;
+//    }
+    int kNewAccounts = (int) ceil(log2(numberOfNodes))*2;
 
     // Initializing attackers: Setting edges between the attackers and maximum external degree
     HashTable<string, Node> newAccounts = initializeAttackers(kNewAccounts);
@@ -441,7 +427,7 @@ int main (int argc, char * argv[])
     // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
     // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
 
-    //addExtraEdges(newAccounts, nodes, targetedNodes);
+    addExtraEdges(newAccounts, nodes, targetedNodes);
     writeFile(outputFolderPath, newAccounts);
 
     // Cleaning Memory
