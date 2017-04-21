@@ -66,8 +66,9 @@ public:
 
     Node ()
     {
-        this->externalDegree = 0;
-        this->degree         = 0;
+        this->externalDegree        = 0;
+        this->degree                = 0;
+        this->maximumExternalDegree = 0;
     }
 
     ~Node()

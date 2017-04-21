@@ -197,7 +197,8 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
     }
 
     int iterations = 1;
-    while (iterations != numberOfAttackers)
+    // If the tree gets to big, we say there is no possible way of retrieving the subgraph
+    while (iterations != numberOfAttackers && tree.size() < 10000)
     {
         vector<vector<string> > newPaths;
         for (int i = 0; i < tree.size(); i++)
@@ -354,7 +355,7 @@ int main (int argc, char * argv[])
         return -1;
     }
 
-    cout << " " << endl;
+    cout << "success" << endl;
 
     // real label mapped to anonimized label
     unordered_map<string, string> identity;
@@ -366,11 +367,11 @@ int main (int argc, char * argv[])
         // attackers displayed in order
         anonimized[path[j]] = "attacker_" + to_string(j);
         identity["attacker_" + to_string(j)] = path[j];
-        cout << "attacker_" + to_string(j)  << " ";
+//        cout << "attacker_" + to_string(j)  << " ";
     }
-    cout << "" << endl;
+//    cout << "" << endl;
 
-    getNodesIdentity (subgraph, graph, identity, anonimized);
+//    getNodesIdentity (subgraph, graph, identity, anonimized);
 
     // clearing memory
     anonimized = unordered_map<string, string>();
@@ -380,7 +381,7 @@ int main (int argc, char * argv[])
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
     chrono::duration<double> endTimeSpan              = chrono::duration_cast<chrono::duration<double> >(endTime - startTime);
-    cout << "end: " << endTimeSpan.count() << " secs" << endl;
+//    cout << "end: " << endTimeSpan.count() << " secs" << endl;
 
     return 0;
 }
