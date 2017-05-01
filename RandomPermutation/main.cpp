@@ -173,7 +173,7 @@ int main (int argc, char * argv[])
     // End of execution
     chrono::high_resolution_clock::time_point endTime = chrono::high_resolution_clock::now();
     chrono::duration<double> endTimeSpan              = chrono::duration_cast<chrono::duration<double> >(endTime - startTime);
-    printf("end: %lf secs\n", endTimeSpan.count());
+//    printf("end: %lf secs\n", endTimeSpan.count());
 
     return 0;
 }

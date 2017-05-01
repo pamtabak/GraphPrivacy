@@ -3,6 +3,7 @@
 #include "Node.hpp"
 #include <random>
 #include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <sstream>
 #include <stdio.h>      /* printf, scanf, puts, NULL */
@@ -17,8 +18,6 @@
 using namespace std;
 
 chrono::high_resolution_clock::time_point startTime;
-
-double epsilon = 0.0001;
 
 HashTable<string, int> generatePossibleGraphStructures ()
 {
@@ -223,37 +222,6 @@ void writeFile (string outputFilePath, HashTable<string, Node> newAccounts)
     }
 }
 
-//int findD1 (int d0, int maxD)
-//{
-//    // d1 > d0
-//
-//    // pow(d1,2) - d1*maxD - d1*d0 + d0*maxD = d0*(1 - epsilon)
-//    // pow (d1,2) - d1(maxD + d0) + d0(maxD - 1 + epsilon) = 0
-//    // pow (d1,2) + d1(-d0 - maxD) + d0(maxD - 1 + epsilon) = 0
-//
-//    double rootA, rootB = 0.0;
-//    try {
-//        rootA = (-(-d0 - maxD) - sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
-//        rootB = (-(-d0 - maxD) + sqrt(pow((-d0 - maxD), 2) - 4 * 1 * (maxD - 1 + epsilon))) / 2;
-//    }
-//    catch (int e)
-//    {
-//        // some imaginary number was found (?)
-//    }
-//
-//    if (rootA > 0.0 && rootA > d0)
-//    {
-//        // rounding number. Ex: rootA is 54.6, so we return 55. If rootA is 54.4, we return 54
-//        return (int) (rootA + 0.5);
-//    }
-//    if (rootB > 0.0 && rootB > d0)
-//    {
-//        return (int) (rootB + 0.5);
-//    }
-//
-//    return 0;
-//}
-
 void calculateMaximumExternalDegree (HashTable<string, Node> &newAccounts)
 {
     // Once all targeted nodes have a subset (of attackers), we generate a maximum external degree
@@ -275,7 +243,8 @@ void calculateMaximumExternalDegree (HashTable<string, Node> &newAccounts)
         }
         else
         {
-            d1 = (((rand() % newAccounts.size()) + 1) * externalDegree);
+//            d1 = (((rand() % newAccounts.size()) + 1) * externalDegree);
+            d1 = ((((rand() % newAccounts.size()) + 1)*((rand() % newAccounts.size()) + 1))  + externalDegree);
         }
 
         uniform_int_distribution<int> distribution(externalDegree, d1);
@@ -321,18 +290,21 @@ void binarySum (int * add_one_binary, int numberOfAttackers, int* & binary_subse
     delete[] sum;
 }
 
-void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, Node> &newAccounts, int numberOfNodes)
+HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccounts , int numberOfNodes, unordered_set<string> nodes)
 {
+    // Initializing attackers: Setting edges between the attackers and maximum external degree
+    HashTable<string, Node> newAccounts = initializeAttackers(kNewAccounts);
+
     // we create an int array with size = number of attackers
     // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker should be at the
     // subset for that target. At each iteration, we add one to the binary number
     // This way, all targets will have different attacker subsets
     int numberOfAttackers = newAccounts.size();
-    int * binary_subsets = new int[numberOfAttackers];
-    int * add_one_binary = new int[numberOfAttackers];
+    int *binary_subsets = new int[numberOfAttackers];
+    int *add_one_binary = new int[numberOfAttackers];
 
     // Making access to nodes faster
-    Node * attackersArray = new Node[numberOfAttackers];
+    Node *attackersArray = new Node[numberOfAttackers];
     for (int i = 0; i < numberOfAttackers; i++)
     {
         binary_subsets[i] = 0;
@@ -348,9 +320,9 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
     for (int i = 0; i < targetedNodes.size(); i++)
     {
         // targets must have, at least, 2 attackers (so we can attach non targets to attackers)
-        if (onlyOneAttacker (binary_subsets, numberOfAttackers))
+        if (onlyOneAttacker(binary_subsets, numberOfAttackers))
         {
-            binarySum (add_one_binary, numberOfAttackers, binary_subsets);
+            binarySum(add_one_binary, numberOfAttackers, binary_subsets);
             continue;
         }
 
@@ -367,7 +339,7 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
             }
         }
 
-        binarySum (add_one_binary, numberOfAttackers, binary_subsets);
+        binarySum(add_one_binary, numberOfAttackers, binary_subsets);
     }
 
     for (int i = 0; i < newAccounts.size(); i++)
@@ -377,9 +349,14 @@ void generateTargetedNodesSet (vector<string> targetedNodes, HashTable<string, N
 
     calculateMaximumExternalDegree(newAccounts);
 
+    // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
+    addExtraEdges(newAccounts, nodes, targetedNodes);
+
     delete[] binary_subsets;
     delete[] add_one_binary;
     delete[] attackersArray;
+
+    return newAccounts;
 }
 
 int main (int argc, char * argv[])
@@ -410,24 +387,13 @@ int main (int argc, char * argv[])
     /* initialize random seed: */
     srand (time(NULL));
 
-//    int kNewAccounts = (int) ceil(log2(numberOfNodes)) + 1;
-//    if ((1.0*targetedNodes.size())/numberOfNodes > 0.9)
-//    {
-//        kNewAccounts = kNewAccounts * 2;
-//    }
     int kNewAccounts = (int) ceil(log2(numberOfNodes))*2;
-
-    // Initializing attackers: Setting edges between the attackers and maximum external degree
-    HashTable<string, Node> newAccounts = initializeAttackers(kNewAccounts);
 
     // For each targeted node Wj, we choose a set Nj (contained in newAccounts), such that all Nj are distinct,
     // Once the sets are defined, we give each attacker a maximum external degree
-    generateTargetedNodesSet(targetedNodes, newAccounts, numberOfNodes);
+    HashTable<string, Node> newAccounts = addAtackers(targetedNodes, kNewAccounts, numberOfNodes, nodes);
 
-    // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
-    // And writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
-
-    addExtraEdges(newAccounts, nodes, targetedNodes);
+    // writing it to file - new accounts and it`s edges - sub graph H and edges connecting it to G
     writeFile(outputFolderPath, newAccounts);
 
     // Cleaning Memory

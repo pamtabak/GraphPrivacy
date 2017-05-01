@@ -40,7 +40,7 @@ public:
         {
             for (auto local_it = this->hashMap.begin(i); local_it!= this->hashMap.end(i); ++local_it)
             {
-                file << local_it->first << ":" << local_it->second << "\n";
+                file << local_it->first << " " << local_it->second << "\n";
             }
         }
         file.close();
