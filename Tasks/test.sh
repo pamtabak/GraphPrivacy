@@ -45,7 +45,7 @@ do
 			
 			#recover graph
 			cd RecoverGraph/cmake-build-debug
-			./RecoverGraph "$full_graph" "$current_dir/Files/degree.txt" "$output_folder" edgesPerLine "$current_dir/Files/subgraph.txt"
+			./RecoverGraph "$full_graph" "$current_dir/Files/degree.txt" "$output_folder" edgesPerLine "$current_dir/Files/subgraph.txt" "$current_dir/Files/permutationFunction.txt"
 		
 			cd ..
 			cd ..
