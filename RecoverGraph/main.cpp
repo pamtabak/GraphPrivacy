@@ -161,7 +161,7 @@ bool includes (vector<int> first, vector<int> second)
     return true;
 }
 
-vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>> graph, vector<Node> attackersDegree, int numberOfAttackers)
+vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>> graph, vector<Node> attackersDegree, int numberOfAttackers, unordered_map<string, unordered_set<string>> permutationFunction)
 {
     vector<vector<string> > tree;
 
@@ -240,6 +240,22 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
 
     if (tree.size() != 1)
     {
+        for (int i = 0; i < tree.size(); i++)
+        {
+            for (int j = 0; j < tree[i].size(); j++)
+            {
+                if ((*permutationFunction[tree[i][j]].begin()).find("attacker_") != string::npos)
+                {
+                    cout << "isomorphism" << endl;
+                    return vector<string>();
+                }
+                else if (*permutationFunction[tree[i][j]].begin() != "attacker_" + to_string(j))
+                {
+                    cout << "automorphism" << endl;
+                    return vector<string>();
+                }
+            }
+        }
         return vector<string>();
     }
 
@@ -322,7 +338,7 @@ void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, un
 int main (int argc, char * argv[])
 {
     // Input: Path to graph G and way it`s structured, Path to information about the attackers, output folder
-    if(argc != 6)
+    if(argc != 7)
     {
         cout << "Wrong number of parameters." << endl;
         return EXIT_FAILURE;
@@ -336,19 +352,21 @@ int main (int argc, char * argv[])
     string outputFolderPath(argv[3]);
     string graphStructure(argv[4]);
     string subgraphFilePath(argv[5]);
+    string permutationFunctionFilePath(argv[6]); // real_label random_label
 
     int numericGraphStructure = getGraphStructure(graphStructure);
 
     // Read graph
-    unordered_map<string, unordered_set<string>> graph    = readGraph(numericGraphStructure, graphFilePath);
-    unordered_map<string, unordered_set<string>> subgraph = readGraph(numericGraphStructure, subgraphFilePath);
+    unordered_map<string, unordered_set<string>> graph               = readGraph(numericGraphStructure, graphFilePath);
+    unordered_map<string, unordered_set<string>> subgraph            = readGraph(numericGraphStructure, subgraphFilePath);
+    unordered_map<string, unordered_set<string>> permutationFunction = readGraph(numericGraphStructure, permutationFunctionFilePath);
 
     // Read attackers information (we need the node`s degrees ordered by the attackers)
     // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
     int numberOfAttackers;
     vector<Node> attackersDegree = getAttackersInfo(attackersInformationPath, numberOfAttackers);
 
-    vector<string> path = findOrderedAttackers (graph, attackersDegree, numberOfAttackers);
+    vector<string> path = findOrderedAttackers (graph, attackersDegree, numberOfAttackers, permutationFunction);
     if (path.size() == 0)
     {
         cout << "failed" << endl;
