@@ -2,9 +2,9 @@
 
 #sudo chmod 755 filename
 
-number_of_iterations=50
+number_of_iterations=5
 
-targeted_nodes_list="10"
+targeted_nodes_list="500 1000 1500 2000 2500 3000 3500 4000 4039"
 
 for target in $targeted_nodes_list;
 do
@@ -15,7 +15,7 @@ do
 		
 		current_dir=$(pwd)
 		output_folder="$current_dir/Files/"
-		graph="$current_dir/Files/test1.txt"
+		graph="$current_dir/Files/facebook_combined.txt"
 
 		#create attackers
 		cd ..
@@ -44,5 +44,10 @@ do
 		cd ..
 		cd ..
 		cd Tasks
+
+		rm -rf "$current_dir/Files/degree.txt"
+		rm -rf "$current_dir/Files/subgraph.txt"
+		rm -rf "$full_graph"
+		rm -rf "$current_dir/Files/permutationFunction.txt"
 	done
 done

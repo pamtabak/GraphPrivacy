@@ -290,72 +290,141 @@ void binarySum (int * add_one_binary, int numberOfAttackers, int* & binary_subse
     delete[] sum;
 }
 
-HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccounts , int numberOfNodes, unordered_set<string> nodes)
+bool hasAutomorphism (HashTable<string, Node> newAccounts)
 {
-    // Initializing attackers: Setting edges between the attackers and maximum external degree
-    HashTable<string, Node> newAccounts = initializeAttackers(kNewAccounts);
+    // Each attacker`s degree appears once. If 2 or + attackers have the same degree
+    // We will compare using the neighbors (that are attackers) degrees
+    unordered_map<int, vector<vector<int>>> degree;
 
-    // we create an int array with size = number of attackers
-    // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker should be at the
-    // subset for that target. At each iteration, we add one to the binary number
-    // This way, all targets will have different attacker subsets
-    int numberOfAttackers = newAccounts.size();
-    int *binary_subsets = new int[numberOfAttackers];
-    int *add_one_binary = new int[numberOfAttackers];
-
-    // Making access to nodes faster
-    Node *attackersArray = new Node[numberOfAttackers];
-    for (int i = 0; i < numberOfAttackers; i++)
+    for (int k = 0; k < newAccounts.size(); k++)
     {
-        binary_subsets[i] = 0;
-        add_one_binary[i] = 0;
-        if (i == (numberOfAttackers - 1))
-        {
-            add_one_binary[i] = 1;
-        }
+        string nodeLabel = "attacker_" + to_string(k);
+        Node node = newAccounts.get(nodeLabel);
 
-        attackersArray[i] = newAccounts.get("attacker_" + to_string(i));
-    }
-
-    for (int i = 0; i < targetedNodes.size(); i++)
-    {
-        // targets must have, at least, 2 attackers (so we can attach non targets to attackers)
-        if (onlyOneAttacker(binary_subsets, numberOfAttackers))
+        list<string> neighbors = node.neighbors;
+        vector<int> neighborsDegree;
+        for (list<string>::iterator it=neighbors.begin(); it != neighbors.end(); ++it)
         {
-            binarySum(add_one_binary, numberOfAttackers, binary_subsets);
-            continue;
-        }
-
-        for (int j = 0; j < newAccounts.size(); j++)
-        {
-            if (binary_subsets[j] == 1)
+            unordered_map<string, Node>::const_iterator got = newAccounts.hashMap.find(*it);
+            if (got != newAccounts.hashMap.end())
             {
-                // Updating attacker's external degree
-                Node node = attackersArray[j];
-                node.setExternalDegree(node.getExternalDegree() + 1);
-                node.setDegree(node.getDegree() + 1);
-                node.addNeighbor(targetedNodes[i]);
-                attackersArray[j] = node;
+                // attacker
+                Node neighborNode = got->second;
+                neighborsDegree.push_back(neighborNode.getDegree());
             }
         }
 
-        binarySum(add_one_binary, numberOfAttackers, binary_subsets);
+        sort(neighborsDegree.begin(), neighborsDegree.end());
+
+        unordered_map<int, vector<vector<int>>>::const_iterator got = degree.find(node.getDegree());
+        if (got != degree.end())
+        {
+            // there is another attacker with the same degree
+            for (int i = 0; i < got->second.size(); i++)
+            {
+                // compare neighbors degree with each already saved list of neighbors degrees
+                if (equal(neighborsDegree.begin(), neighborsDegree.end(), got->second[i].begin()))
+                {
+                    return true;
+                }
+            }
+            degree[node.getDegree()].push_back(neighborsDegree);
+        }
+        else
+        {
+            degree[node.getDegree()].push_back(neighborsDegree);
+        }
     }
 
-    for (int i = 0; i < newAccounts.size(); i++)
+    return false;
+}
+
+HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccounts , int numberOfNodes, unordered_set<string> nodes)
+{
+    // Initializing attackers: Setting edges between the attackers and maximum external degree
+    HashTable<string, Node> newAccounts;
+
+    int  maxRetries      = 5;
+    bool noAutomorphisms = false;
+
+    while (!noAutomorphisms && maxRetries >= 0)
     {
-        newAccounts.set("attacker_" + to_string(i), attackersArray[i]);
+        newAccounts = initializeAttackers(kNewAccounts);
+
+        // we create an int array with size = number of attackers
+        // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker should be at the
+        // subset for that target. At each iteration, we add one to the binary number
+        // This way, all targets will have different attacker subsets
+        int numberOfAttackers = newAccounts.size();
+        int *binary_subsets   = new int[numberOfAttackers];
+        int *add_one_binary   = new int[numberOfAttackers];
+
+        // Making access to nodes faster
+        Node *attackersArray = new Node[numberOfAttackers];
+        for (int i = 0; i < numberOfAttackers; i++)
+        {
+            binary_subsets[i] = 0;
+            add_one_binary[i] = 0;
+            if (i == (numberOfAttackers - 1))
+            {
+                add_one_binary[i] = 1;
+            }
+
+            attackersArray[i] = newAccounts.get("attacker_" + to_string(i));
+        }
+
+        for (int i = 0; i < targetedNodes.size(); i++)
+        {
+            // targets must have, at least, 2 attackers (so we can attach non targets to attackers)
+            if (onlyOneAttacker(binary_subsets, numberOfAttackers))
+            {
+                binarySum(add_one_binary, numberOfAttackers, binary_subsets);
+                continue;
+            }
+
+            for (int j = 0; j < newAccounts.size(); j++)
+            {
+                if (binary_subsets[j] == 1)
+                {
+                    // Updating attacker's external degree
+                    Node node = attackersArray[j];
+                    node.setExternalDegree(node.getExternalDegree() + 1);
+                    node.setDegree(node.getDegree() + 1);
+                    node.addNeighbor(targetedNodes[i]);
+                    attackersArray[j] = node;
+                }
+            }
+
+            binarySum(add_one_binary, numberOfAttackers, binary_subsets);
+        }
+
+        for (int i = 0; i < newAccounts.size(); i++)
+        {
+            newAccounts.set("attacker_" + to_string(i), attackersArray[i]);
+        }
+
+        calculateMaximumExternalDegree(newAccounts);
+
+        // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
+        addExtraEdges(newAccounts, nodes, targetedNodes);
+
+        delete[] binary_subsets;
+        delete[] add_one_binary;
+        delete[] attackersArray;
+
+        // Check for automorphism
+        // If two attackers have the same degree and same exact neighbor`s (that are attackers) degree sequence
+        // repeat process
+        if (!hasAutomorphism(newAccounts))
+        {
+            noAutomorphisms = true;
+        }
+        else
+        {
+            cout << "[create attackers] autormorphism. retries left: " << maxRetries << endl;
+            maxRetries -= 1;
+        }
     }
-
-    calculateMaximumExternalDegree(newAccounts);
-
-    // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
-    addExtraEdges(newAccounts, nodes, targetedNodes);
-
-    delete[] binary_subsets;
-    delete[] add_one_binary;
-    delete[] attackersArray;
-
     return newAccounts;
 }
 
