@@ -290,6 +290,40 @@ void binarySum (int * add_one_binary, int numberOfAttackers, int* & binary_subse
     delete[] sum;
 }
 
+// checks wheter fist vector includes the second one
+bool includes (vector<int> first, vector<int> second)
+{
+    // both vectors are sorted
+    // second.size() <= first.size()
+    int firstIndexMatch = -1;
+    for (int i = 0; i < first.size(); i++)
+    {
+        if (first[i] != second[0])
+        {
+            continue;
+        }
+        firstIndexMatch = i;
+        break;
+    }
+
+    if (firstIndexMatch == -1 or (firstIndexMatch + second.size()) > first.size())
+    {
+        return false;
+    }
+
+    int secondIndex = 0;
+    while (secondIndex < second.size())
+    {
+        int c = count (second.begin(), second.end(), second[secondIndex]);
+        if (c > count (first.begin(), first.end(), second[secondIndex]))
+        {
+            return false;
+        }
+        secondIndex += c;
+    }
+    return true;
+}
+
 bool hasAutomorphism (HashTable<string, Node> newAccounts)
 {
     // Each attacker`s degree appears once. If 2 or + attackers have the same degree
@@ -323,9 +357,19 @@ bool hasAutomorphism (HashTable<string, Node> newAccounts)
             for (int i = 0; i < got->second.size(); i++)
             {
                 // compare neighbors degree with each already saved list of neighbors degrees
-                if (equal(neighborsDegree.begin(), neighborsDegree.end(), got->second[i].begin()))
+                if (got->second[i].size() > neighborsDegree.size())
                 {
-                    return true;
+                    if (includes(got->second[i], neighborsDegree))
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (includes(neighborsDegree, got->second[i]))
+                    {
+                        return true;
+                    }
                 }
             }
             degree[node.getDegree()].push_back(neighborsDegree);
@@ -344,7 +388,7 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
     // Initializing attackers: Setting edges between the attackers and maximum external degree
     HashTable<string, Node> newAccounts;
 
-    int  maxRetries      = 5;
+    int  maxRetries      = 10;
     bool noAutomorphisms = false;
 
     while (!noAutomorphisms && maxRetries >= 0)
@@ -421,7 +465,7 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
         }
         else
         {
-            cout << "[create attackers] autormorphism. retries left: " << maxRetries << endl;
+            // cout << "[create attackers] autormorphism. retries left: " << maxRetries << endl;
             maxRetries -= 1;
         }
     }
