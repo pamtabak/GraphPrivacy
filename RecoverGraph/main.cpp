@@ -244,7 +244,7 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
         {
             for (int j = 0; j < tree[i].size(); j++)
             {
-                if ((*permutationFunction[tree[i][j]].begin()).find("attacker_") != string::npos)
+                if ((*permutationFunction[tree[i][j]].begin()).find("attacker_") == string::npos)
                 {
                     cout << "isomorphism" << endl;
                     return vector<string>();
