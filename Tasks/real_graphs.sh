@@ -2,9 +2,9 @@
 
 #sudo chmod 755 filename
 
-number_of_iterations=5
+number_of_iterations=50
 
-targeted_nodes_list="500 1000 1500 2000 2500 3000 3500 4000 4039"
+targeted_nodes_list="600 700 800 900 1100 1200 1300 1400 1600 1700 1800 1900 2100 2200 2300 2400 2600 2700 2800 2900 3100 3200 3300 3400 3600 3700 3800 3900 4039"
 
 for target in $targeted_nodes_list;
 do
@@ -47,6 +47,7 @@ do
 
 		rm -rf "$current_dir/Files/degree.txt"
 		rm -rf "$current_dir/Files/subgraph.txt"
+		rm -rf "$targeted_nodes"
 		rm -rf "$full_graph"
 		rm -rf "$current_dir/Files/permutationFunction.txt"
 	done

@@ -6,13 +6,12 @@ import os
 
 n = int(sys.argv[1]) # number of nodes
 m = int(sys.argv[2]) # initial degree of each node (also minimum possible degree)
-gamma = float(sys.argv[3]) # preferential attachment power
 
-g = price_network(n,m,gamma=gamma,directed=False)
+g = price_network(n,m,directed=False)
 
 edges = {}
 
-filename = "Files/model_ba_" + str(n) + "_" + str(m) + "_" + str(gamma).replace(".",",") + ".txt"
+filename = "Files/model_ba_" + str(n) + "_" + str(m) + ".txt"
 target = open(filename, 'w')
 
 for v in g.vertices():
