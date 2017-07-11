@@ -15,7 +15,7 @@ using namespace std;
 class Node
 {
 public:
-    // if node is an attacker, it`s external degree is the sum of all it`s connections to nodes that are not attackers
+    // if node is an attacker: its external degree is the number of connections to nodes that are not attackers
     // else, it`s 0
     int externalDegree;
     int maximumExternalDegree;

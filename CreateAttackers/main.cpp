@@ -44,7 +44,7 @@ void split(const std::string &s, char delimiter, Out result) {
     }
 }
 
-// Reads input graph and returns it`s node`s labels and number of nodes
+// Reads input graph and returns its node`s labels and number of nodes
 unordered_set<string> readGraph (int numericGraphStructure, string filePath)
 {
     // List all nodes (HashSet, so there are no duplicates)
@@ -72,7 +72,7 @@ unordered_set<string> readGraph (int numericGraphStructure, string filePath)
     return nodes;
 }
 
-// Reads file and return all targeted nodes labels
+// Reads file and returns all targeted nodes labels
 vector<string> readTargetedNodes (string filePath)
 {
     vector<string> targetedNodes;
@@ -113,7 +113,7 @@ HashTable<string, Node> initializeAttackers (int kNewAccounts)
         }
         else
         {
-            // Adding the edge to close the circle connecting the attackers
+            // Adding the edge that closes the cycle connecting the attackers
             // The last attacker is connected with the first attacker
             neighborLabel = "attacker_" + to_string(0);
         }
@@ -162,9 +162,9 @@ void addExtraEdges (HashTable<string, Node> &newAccounts, unordered_set<string> 
         nodes.erase(targetedNodes[i]);
     }
 
-    // nodes are the all nodes that are not targets from the original graph
+    // the hashset nodes representes all nodes from the original graph that are not targets
 
-    // each non target nodes can be only attached to one attacker
+    // each non target node can be only connected to one attacker
     for (int k = 0; k < newAccounts.size(); k++)
     {
         string nodeLabel = "attacker_" + to_string(k);
@@ -243,7 +243,6 @@ void calculateMaximumExternalDegree (HashTable<string, Node> &newAccounts)
         }
         else
         {
-//            d1 = (((rand() % newAccounts.size()) + 1) * externalDegree);
             d1 = ((((rand() % newAccounts.size()) + 1)*((rand() % newAccounts.size()) + 1))  + externalDegree);
         }
 
@@ -290,7 +289,7 @@ void binarySum (int * add_one_binary, int numberOfAttackers, int* & binary_subse
     delete[] sum;
 }
 
-// checks wheter fist vector includes the second one
+// checks whether fist vector includes the second one
 bool includes (vector<int> first, vector<int> second)
 {
     // both vectors are sorted
@@ -327,7 +326,7 @@ bool includes (vector<int> first, vector<int> second)
 bool hasAutomorphism (HashTable<string, Node> newAccounts)
 {
     // Each attacker`s degree appears once. If 2 or + attackers have the same degree
-    // We will compare using the neighbors (that are attackers) degrees
+    // We check if the neighbor's degree sequence from one node (that contains only by nodes that are attackers) contains the other node's sequence
     unordered_map<int, vector<vector<int>>> degree;
 
     for (int k = 0; k < newAccounts.size(); k++)
@@ -396,8 +395,8 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
         newAccounts = initializeAttackers(kNewAccounts);
 
         // we create an int array with size = number of attackers
-        // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker should be at the
-        // subset for that target. At each iteration, we add one to the binary number
+        // We start with a "0000001" binary number. For each position, if it`s 1, then that attacker is going to
+        // to be connected to that target. At each iteration, we add one to the binary number
         // This way, all targets will have different attacker subsets
         int numberOfAttackers = newAccounts.size();
         int *binary_subsets   = new int[numberOfAttackers];
@@ -419,7 +418,7 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
 
         for (int i = 0; i < targetedNodes.size(); i++)
         {
-            // targets must have, at least, 2 attackers (so we can attach non targets to attackers)
+            // targets must have, at least, 2 attackers (so we can connect non targets to attackers)
             if (onlyOneAttacker(binary_subsets, numberOfAttackers))
             {
                 binarySum(add_one_binary, numberOfAttackers, binary_subsets);
@@ -449,15 +448,15 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
 
         calculateMaximumExternalDegree(newAccounts);
 
-        // Adding arbitrary edges from H to G - H, so that each attacker node has exactly Di edges to G - H
+        // Adding arbitrary edges from H to G - H, increasing the randomness of the attacker's subgraph
         addExtraEdges(newAccounts, nodes, targetedNodes);
 
         delete[] binary_subsets;
         delete[] add_one_binary;
         delete[] attackersArray;
 
-        // Check for automorphism
-        // If two attackers have the same degree and same exact neighbor`s (that are attackers) degree sequence
+        // Check for automorphisms
+        // If two attackers have the same degree and same neighbor`s (that are attackers) degree sequence - if one sequence contains the other!
         // repeat process
         if (!hasAutomorphism(newAccounts))
         {
@@ -465,7 +464,6 @@ HashTable<string, Node> addAtackers (vector<string> targetedNodes, int kNewAccou
         }
         else
         {
-            // cout << "[create attackers] autormorphism. retries left: " << maxRetries << endl;
             maxRetries -= 1;
         }
     }
@@ -476,7 +474,7 @@ int main (int argc, char * argv[])
 {
     startTime = chrono::high_resolution_clock::now();
 
-    // Output: attackers and it`s edges. Attackers degrees
+    // Output: attackers and it`s edges. Attacker's degrees and neighbor's degree sequence
     // Input: Path to graph G and way it`s structured, Path to list of target nodes
     if(argc != 5)
     {
