@@ -1,13 +1,14 @@
 #!/bin/bash
 
 #sudo chmod 755 filename
-number_of_nodes=1000
-number_of_iterations=50
+number_of_nodes=10
+number_of_iterations=1
 echo $number_of_nodes
 
-# targeted_nodes_list="2 4 8 16 32 64 100 128 200 256 300 400 500 512 600 700 800 900 1000"
-p_list="0.01 0.05 0.08 0.1 0.2 0.3 0.4 0.5"
-targeted_nodes_list="8"
+#targeted_nodes_list="2 4 8 16 32 64 100 128 200 256 300 400 500 512 600 700 800 900 1000"
+#p_list="0.01 0.05 0.08 0.1 0.2 0.3 0.4 0.5"
+targeted_nodes_list="3"
+p_list="0.4"
 
 for target in $targeted_nodes_list;
 do
@@ -55,7 +56,7 @@ do
 			rm -rf "$graph"
 			rm -rf "$current_dir/Files/degree.txt"
 			rm -rf "$current_dir/Files/subgraph.txt"
-			rm -rf "$full_graph"
+			#rm -rf "$full_graph"
 			rm -rf "$current_dir/Files/permutationFunction.txt"
 		done
 	done

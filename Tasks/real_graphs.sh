@@ -4,7 +4,7 @@
 
 number_of_iterations=50
 
-targeted_nodes_list="600 700 800 900 1100 1200 1300 1400 1600 1700 1800 1900 2100 2200 2300 2400 2600 2700 2800 2900 3100 3200 3300 3400 3600 3700 3800 3900 4039"
+targeted_nodes_list="1250 1750 2250 2750 3250 3750 4250 4750 5250 5750 6250"
 
 for target in $targeted_nodes_list;
 do
@@ -12,10 +12,11 @@ do
 	for ((i=0; i < $number_of_iterations; ++i ))
 	do	
 		targeted_nodes=`python generate_targeted_nodes.py $target`
+		#targeted_nodes=`python generate_specific_targeted_nodes.py $target`
 		
 		current_dir=$(pwd)
 		output_folder="$current_dir/Files/"
-		graph="$current_dir/Files/facebook_combined.txt"
+		graph="$current_dir/Files/p2p-Gnutella08_undirected.txt"
 
 		#create attackers
 		cd ..
