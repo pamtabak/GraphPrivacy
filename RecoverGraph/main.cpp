@@ -65,7 +65,6 @@ unordered_map<string, unordered_set<string>> readGraph (int numericGraphStructur
     return graph;
 }
 
-// TO DO: total degree, external degree, (neighbor`s degrees)
 vector<Node> getAttackersInfo(string filePath, int &numberOfAttackers)
 {
     vector<Node> attackersDegree;
@@ -75,7 +74,7 @@ vector<Node> getAttackersInfo(string filePath, int &numberOfAttackers)
     int counter = 0;
     while (getline(file, str))
     {
-        // The first line represent`s how many attackers there are
+        // The first line represents how many attackers there are
         if (counter == 0)
         {
             numberOfAttackers = stoi(str);
@@ -165,13 +164,12 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
 {
     vector<vector<string> > tree;
 
-    // start tree with dummy node
-    // then, each node that has the same degree as attackersDegree[0] will be connected to the root
+    // each node that has the attributes that attackersDegree[0] has will be the root from a tree
     for (unsigned i = 0; i < graph.bucket_count(); ++i)
     {
         for (auto local_it = graph.begin(i); local_it!= graph.end(i); ++local_it)
         {
-            // First, we check if the degree is the one we are searching for
+            // First, we check if the degree is the same as the degree of the attacker we are searching for
             if (local_it->second.size() == attackersDegree[0].getDegree())
             {
                 // Then we check if this node neighbor`s degrees contains the attacker`s degrees that the
@@ -197,7 +195,7 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
     }
 
     int iterations = 1;
-    // If the tree gets to big, we say there is no possible way of retrieving the subgraph
+    // If the tree gets to big: we say there is no possible way of retrieving the subgraph. Failure!
     while (iterations != numberOfAttackers && tree.size() < 10000)
     {
         vector<vector<string> > newPaths;
@@ -262,78 +260,78 @@ vector<string> findOrderedAttackers (unordered_map<string, unordered_set<string>
     return tree[0];
 }
 
-void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, unordered_map<string, unordered_set<string>> graph, unordered_map<string, string> &identity, unordered_map<string, string> &anonimized)
-{
-    for (unsigned i = 0; i < subgraph.bucket_count(); ++i)
-    {
-        for (auto local_it = subgraph.begin(i); local_it!= subgraph.end(i); ++local_it)
-        {
-            // if node has not been identified yet
-            if (identity.find(local_it->first) == identity.end())
-            {
-                unordered_set<string> attackers;
-
-                for (auto neighborIt = local_it->second.begin(); neighborIt != local_it->second.end(); ++neighborIt)
-                {
-                    if (identity.find(*neighborIt) != identity.end())
-                    {
-                        string neighborLabel = *neighborIt;
-                        if (neighborLabel.find("attacker_") != string::npos)
-                        {
-                            attackers.insert(neighborLabel);
-                        }
-                    }
-                }
-
-                if (attackers.size() > 0)
-                {
-                    // For all subgraph nodes yet to be identified, check if
-                    // subgraph_degree <= graph_degree. If not, don`t even bother checking
-                    for (unsigned j = 0; j < graph.bucket_count(); ++j)
-                    {
-                        for (auto it = graph.begin(j); it != graph.end(j); ++it)
-                        {
-                            if (anonimized.find(it->first) == identity.end())
-                            {
-                                if (local_it->second.size() <= it->second.size())
-                                {
-                                    bool hasSameAttackers  = true;
-                                    int  numberOfAttackers = 0;
-
-                                    // getting all attackers from this node`s neighbors
-                                    for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
-                                    {
-                                        if (anonimized.find(*neighborIt) != identity.end())
-                                        {
-                                            string neighborLabel = anonimized[*neighborIt];
-                                            if (neighborLabel.find("attacker_") != string::npos)
-                                            {
-                                                numberOfAttackers += 1;
-                                                if (attackers.find(neighborLabel) == attackers.end())
-                                                {
-                                                    hasSameAttackers = false;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (hasSameAttackers && numberOfAttackers == attackers.size())
-                                    {
-                                        // This only works if no-target nodes are not associated with attackers
-                                        identity[local_it->first] = it->first;
-                                        anonimized[it->first]     = local_it->first;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                attackers = unordered_set<string>();
-            }
-        }
-    }
-}
+//void getNodesIdentity (unordered_map<string, unordered_set<string>> subgraph, unordered_map<string, unordered_set<string>> graph, unordered_map<string, string> &identity, unordered_map<string, string> &anonimized)
+//{
+//    for (unsigned i = 0; i < subgraph.bucket_count(); ++i)
+//    {
+//        for (auto local_it = subgraph.begin(i); local_it!= subgraph.end(i); ++local_it)
+//        {
+//            // if node has not been identified yet
+//            if (identity.find(local_it->first) == identity.end())
+//            {
+//                unordered_set<string> attackers;
+//
+//                for (auto neighborIt = local_it->second.begin(); neighborIt != local_it->second.end(); ++neighborIt)
+//                {
+//                    if (identity.find(*neighborIt) != identity.end())
+//                    {
+//                        string neighborLabel = *neighborIt;
+//                        if (neighborLabel.find("attacker_") != string::npos)
+//                        {
+//                            attackers.insert(neighborLabel);
+//                        }
+//                    }
+//                }
+//
+//                if (attackers.size() > 0)
+//                {
+//                    // For all subgraph nodes yet to be identified, check if
+//                    // subgraph_degree <= graph_degree. If not, don`t even bother checking
+//                    for (unsigned j = 0; j < graph.bucket_count(); ++j)
+//                    {
+//                        for (auto it = graph.begin(j); it != graph.end(j); ++it)
+//                        {
+//                            if (anonimized.find(it->first) == identity.end())
+//                            {
+//                                if (local_it->second.size() <= it->second.size())
+//                                {
+//                                    bool hasSameAttackers  = true;
+//                                    int  numberOfAttackers = 0;
+//
+//                                    // getting all attackers from this node`s neighbors
+//                                    for (auto neighborIt = it->second.begin(); neighborIt != it->second.end(); ++neighborIt)
+//                                    {
+//                                        if (anonimized.find(*neighborIt) != identity.end())
+//                                        {
+//                                            string neighborLabel = anonimized[*neighborIt];
+//                                            if (neighborLabel.find("attacker_") != string::npos)
+//                                            {
+//                                                numberOfAttackers += 1;
+//                                                if (attackers.find(neighborLabel) == attackers.end())
+//                                                {
+//                                                    hasSameAttackers = false;
+//                                                    break;
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//
+//                                    if (hasSameAttackers && numberOfAttackers == attackers.size())
+//                                    {
+//                                        // This only works if no-target nodes are not associated with attackers
+//                                        identity[local_it->first] = it->first;
+//                                        anonimized[it->first]     = local_it->first;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                attackers = unordered_set<string>();
+//            }
+//        }
+//    }
+//}
 
 int main (int argc, char * argv[])
 {
@@ -362,7 +360,7 @@ int main (int argc, char * argv[])
     unordered_map<string, unordered_set<string>> permutationFunction = readGraph(numericGraphStructure, permutationFunctionFilePath);
 
     // Read attackers information (we need the node`s degrees ordered by the attackers)
-    // The attackers file has the amount of attackers and, on each line ordered, each attacker`s degree
+    // The attackers file has the amount of attackers and each attacker`s degree, ordered by the attacker's label
     int numberOfAttackers;
     vector<Node> attackersDegree = getAttackersInfo(attackersInformationPath, numberOfAttackers);
 
@@ -385,9 +383,7 @@ int main (int argc, char * argv[])
         // attackers displayed in order
         anonimized[path[j]] = "attacker_" + to_string(j);
         identity["attacker_" + to_string(j)] = path[j];
-//        cout << "attacker_" + to_string(j)  << " ";
     }
-//    cout << "" << endl;
 
 //    getNodesIdentity (subgraph, graph, identity, anonimized);
 
